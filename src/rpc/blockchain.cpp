@@ -61,6 +61,8 @@
 #include <optional>
 #include <vector>
 
+#include <key_io.h> // For DecodeDestination, IsValidDestination, PKHash, CKeyID
+
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
 
@@ -3378,6 +3380,63 @@ return RPCHelpMan{
     };
 }
 
+// BTCA: New RPC for node connection times
+static RPCHelpMan getnodeconnectiontimes()
+{
+    return RPCHelpMan{"getnodeconnectiontimes",
+                "\nReturns the accumulated connection uptime and last rewarded uptime for a given node KeyID.\n"
+                "The KeyID is derived from the provided BTCA address.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The BTCA address (P2PKH or P2WPKH) associated with the node\'s KeyID."},
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR_HEX, "key_id", "The KeyID of the node (hex)"},
+                        {RPCResult::Type::NUM, "accumulated_uptime_seconds", "Total accumulated uptime in seconds. Returns 0 if no record found."},
+                        {RPCResult::Type::NUM, "last_rewarded_total_uptime_seconds", "Total uptime at which the last reward was given, in seconds. Returns 0 if no record found or no rewards given."},
+                    }
+                },
+                RPCExamples{
+                    HelpExampleCli("getnodeconnectiontimes", "\"myaddress\"")
+            + HelpExampleRpc("getnodeconnectiontimes", "\"myaddress\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    CChainState& active_chainstate = chainman.ActiveChainstate();
+    const CCoinsViewCache* coins_view = &active_chainstate.CoinsTip();
+
+    std::string address_str = self.Arg<std::string>("address");
+    CTxDestination dest = DecodeDestination(address_str);
+
+    if (!IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BTCA address");
+    }
+
+    const PKHash* pkhash = std::get_if<PKHash>(&dest);
+    if (!pkhash) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not refer to a public key hash (PKHash). Only P2PKH or P2WPKH type addresses are supported for node identification.");
+    }
+    CKeyID keyID = CKeyID(*pkhash);
+
+    uint64_t accumulated_uptime = 0;
+    uint64_t last_rewarded_uptime = 0;
+
+    LOCK(cs_main);
+    coins_view->GetUptime(keyID, accumulated_uptime);
+    coins_view->GetLastRewardedUptime(keyID, last_rewarded_uptime);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("key_id", keyID.ToString());
+    result.pushKV("accumulated_uptime_seconds", accumulated_uptime);
+    result.pushKV("last_rewarded_total_uptime_seconds", last_rewarded_uptime);
+
+    return result;
+},
+    };
+}
+// END BTCA
 
 void RegisterBlockchainRPCCommands(CRPCTable& t)
 {
@@ -3412,6 +3471,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"hidden", &waitforblock},
         {"hidden", &waitforblockheight},
         {"hidden", &syncwithvalidationinterfacequeue},
+        {"blockchain", &getnodeconnectiontimes},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

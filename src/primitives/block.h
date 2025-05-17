@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,6 +11,9 @@
 #include <serialize.h>
 #include <uint256.h>
 #include <util/time.h>
+#include "hash.h"
+#include "streams.h"
+#include "protocol.h"
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
  * and scan through nonce values to make the block's hash satisfy proof-of-work
@@ -28,13 +32,14 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
+    std::vector<unsigned char> vchBlockSignature; // BTCA: Signature of the block hash by the designated proposer
 
     CBlockHeader()
     {
         SetNull();
     }
 
-    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce); }
+    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce, obj.vchBlockSignature); }
 
     void SetNull()
     {
@@ -44,6 +49,7 @@ public:
         nTime = 0;
         nBits = 0;
         nNonce = 0;
+        vchBlockSignature.clear();
     }
 
     bool IsNull() const
@@ -52,6 +58,19 @@ public:
     }
 
     uint256 GetHash() const;
+
+    // BTCA: Calculate hash of header for signature purposes (excludes vchBlockSignature)
+    uint256 GetHashForSignature() const
+    {
+        HashWriter ss; // Use HashWriter from hash.h
+        ss << nVersion;
+        ss << hashPrevBlock;
+        ss << hashMerkleRoot;
+        ss << nTime;
+        ss << nBits;
+        ss << nNonce;
+        return ss.GetHash(); // Get the double SHA256 hash
+    }
 
     NodeSeconds Time() const
     {

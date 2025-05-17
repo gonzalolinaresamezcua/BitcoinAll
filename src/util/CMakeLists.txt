@@ -1,4 +1,5 @@
 # Copyright (c) 2023-present The Bitcoin Core developers
+# Copyright (c) 2025 The Bitcoin All developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -35,6 +36,8 @@ add_library(bitcoin_util STATIC EXCLUDE_FROM_ALL
   ../support/lockedpool.cpp
   ../sync.cpp
 )
+
+target_include_directories(bitcoin_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(bitcoin_util
   PRIVATE

@@ -90,6 +90,7 @@ struct NodeContext {
     //! Manages all the node warnings
     std::unique_ptr<node::Warnings> warnings;
     std::thread background_init_thread;
+    std::atomic<int64_t> m_session_start_time{0}; // BTCA: Session start time for uptime calculation
 
     //! Declare default constructor and destructor that are not inline, so code
     //! instantiating the NodeContext struct doesn't need to #include class

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2899,6 +2900,29 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
             if (walletInstance->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
                 walletInstance->SetupDescriptorScriptPubKeyMans();
                 // SetupDescriptorScriptPubKeyMans already calls SetupGeneration for us so we don't need to call SetupGeneration separately
+
+                // BTCA: Add initial reward transaction for a new wallet
+                const CAmount initial_reward_amount = 2000 * COIN;
+                auto new_dest_res = walletInstance->GetNewDestination(OutputType::BECH32M, "Recompensa Inicial BTCA");
+                if (!new_dest_res) {
+                    error = _("Error: No se pudo generar una nueva dirección para la recompensa inicial.");
+                    return nullptr; // O manejar el error de otra forma apropiada
+                }
+                CTxDestination destination = *new_dest_res;
+                CScript scriptPubKey = GetScriptForDestination(destination);
+
+                CMutableTransaction txNew;
+                txNew.vout.resize(1);
+                txNew.vout[0].nValue = initial_reward_amount;
+                txNew.vout[0].scriptPubKey = scriptPubKey;
+                // No inputs for this special initial reward transaction (similar to coinbase)
+                // Consider version, locktime if necessary for BTCA consensus rules
+
+                CTransactionRef tx = MakeTransactionRef(std::move(txNew));
+                mapValue_t mapValue; // Empty mapValue for now
+                walletInstance->CommitTransaction(tx, std::move(mapValue), {});
+                walletInstance->WalletLogPrintf("BTCA: Transacción de recompensa inicial de %s creada y confirmada para la dirección %s\n", FormatMoney(initial_reward_amount), EncodeDestination(destination));
+
             } else {
                 // Legacy wallets need SetupGeneration here.
                 for (auto spk_man : walletInstance->GetActiveScriptPubKeyMans()) {

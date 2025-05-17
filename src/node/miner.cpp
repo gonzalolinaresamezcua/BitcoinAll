@@ -1,4 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
+
 // Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -15,6 +16,8 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <deploymentstatus.h>
+#include <key.h>
+#include <key_io.h>
 #include <logging.h>
 #include <node/context.h>
 #include <node/kernel_notifications.h>
@@ -178,10 +181,38 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
     pblock->nNonce         = 0;
+    pblock->vchBlockSignature.clear(); // Clear any previous signature
+
+    // Calculate Merkle Root before signing, as it's part of the signed hash
+    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+
+    // BTCA: Sign the block if a designated proposer is configured
+    const Consensus::Params& consensusParams = chainparams.GetConsensus();
+    if (!consensusParams.designatedBlockProposerKeyID.IsNull()) {
+        // For regtest, we'll use the hardcoded private key.
+        // IMPORTANT: This is for regtest/testing ONLY. Real applications need secure key management.
+        std::string strSecret = "cQStringQuSodyN8yL3v9S4qY1gB9dZsqFD27DbSCp2f1q4A2d8gX"; // Regtest WIF
+        CKey privKey = DecodeSecret(strSecret);
+        if (!privKey.IsValid()) {
+            throw std::runtime_error(strprintf("%s: Failed to decode private key for block signing.", __func__));
+        }
+
+        // Ensure the derived public key matches the one in chainparams (optional sanity check)
+        CPubKey pubKey = privKey.GetPubKey();
+        if (pubKey.GetID() != consensusParams.designatedBlockProposerKeyID) {
+             throw std::runtime_error(strprintf("%s: Private key does not correspond to designatedBlockProposerKeyID.", __func__));
+        }
+        
+        uint256 hashToSign = pblock->GetHashForSignature();
+        if (!privKey.Sign(hashToSign, pblock->vchBlockSignature)) {
+            throw std::runtime_error(strprintf("%s: Failed to sign block header.", __func__));
+        }
+    }
+    // BTCA: End of block signing
 
     BlockValidationState state;
     if (m_options.test_block_validity && !TestBlockValidity(state, chainparams, m_chainstate, *pblock, pindexPrev,
-                                                            /*fCheckPOW=*/false, /*fCheckMerkleRoot=*/false)) {
+                                                            /*fCheckPOW=*/false, /*fCheckMerkleRoot=*/true)) {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, state.ToString()));
     }
     const auto time_2{SteadyClock::now()};

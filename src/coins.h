@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +9,7 @@
 
 #include <compressor.h>
 #include <core_memusage.h>
+#include <key_io.h>
 #include <memusage.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
@@ -334,6 +336,10 @@ public:
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() = default;
 
+    // BTCA: Methods for connection time tracking - must be implemented by derived classes
+    virtual bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const = 0;
+    virtual bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const = 0;
+
     //! Estimate database size (0 if not implemented)
     virtual size_t EstimateSize() const { return 0; }
 };
@@ -355,6 +361,16 @@ public:
     bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) override;
     std::unique_ptr<CCoinsViewCursor> Cursor() const override;
     size_t EstimateSize() const override;
+
+    // BTCA: Add overrides for new CCoinsView virtual methods
+    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override {
+        Assert(base);
+        return base->GetUptime(keyID, nUptime);
+    }
+    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override {
+        Assert(base);
+        return base->GetLastRewardedUptime(keyID, nLastRewardedUptime);
+    }
 };
 
 
@@ -479,12 +495,19 @@ public:
     //! Run an internal sanity check on the cache data structure. */
     void SanityCheck() const;
 
+    // BTCA: Add overrides for new CCoinsView virtual methods, following the existing pattern for error catching.
+    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
+    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
+
 private:
     /**
      * @note this is marked const, but may actually append to `cacheCoins`, increasing
      * memory usage.
      */
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;
+
+    /** A list of callbacks to execute upon leveldb read error. */
+    std::vector<std::function<void()>> m_err_callbacks;
 };
 
 //! Utility function to add all of a transaction's outputs to a cache.

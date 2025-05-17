@@ -90,6 +90,14 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
     return vhashHeadBlocks;
 }
 
+bool CCoinsViewDB::GetUptime(const CKeyID& keyID, uint64_t& nUptime) const {
+    return m_db->Read(std::make_pair(DB_UPTIME, keyID), nUptime);
+}
+
+bool CCoinsViewDB::GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const {
+    return m_db->Read(std::make_pair(DB_LAST_REWARDED_UPTIME, keyID), nLastRewardedUptime);
+}
+
 bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) {
     CDBBatch batch(*m_db);
     size_t count = 0;
@@ -147,6 +155,29 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashB
     // In the last batch, mark the database as consistent with hashBlock again.
     batch.Erase(DB_HEAD_BLOCKS);
     batch.Write(DB_BEST_BLOCK, hashBlock);
+
+    // BTCA: Add uptime data to batch
+    for (const auto& entry : cursor.m_write_uptime) {
+        batch.Write(std::make_pair(DB_UPTIME, entry.first), entry.second);
+        changed++; // Consider this a change
+    }
+    for (const auto& entry : cursor.m_write_last_rewarded_uptime) {
+        batch.Write(std::make_pair(DB_LAST_REWARDED_UPTIME, entry.first), entry.second);
+        changed++; // Consider this a change
+    }
+    for (const auto& key_to_delete : cursor.m_delete_uptime) {
+        batch.Erase(std::make_pair(DB_UPTIME, key_to_delete));
+        changed++; // Consider this a change
+    }
+    for (const auto& key_to_delete : cursor.m_delete_last_rewarded_uptime) {
+        batch.Erase(std::make_pair(DB_LAST_REWARDED_UPTIME, key_to_delete));
+        changed++; // Consider this a change
+    }
+    // Clear the write/delete maps in the cursor after processing
+    cursor.m_write_uptime.clear();
+    cursor.m_write_last_rewarded_uptime.clear();
+    cursor.m_delete_uptime.clear();
+    cursor.m_delete_last_rewarded_uptime.clear();
 
     LogDebug(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.ApproximateSize() * (1.0 / 1048576.0));
     bool ret = m_db->WriteBatch(batch);
@@ -218,16 +249,149 @@ bool CCoinsViewDBCursor::GetValue(Coin &coin) const
 
 bool CCoinsViewDBCursor::Valid() const
 {
-    return keyTmp.first == DB_COIN;
+    // Uncached key, return true if valid
+    return keyTmp.first == DB_COIN && pcursor->Valid();
 }
 
 void CCoinsViewDBCursor::Next()
 {
+    // Bye bye old cached key
+    keyTmp.first = 0;
+    // Next entry
     pcursor->Next();
-    CoinEntry entry(&keyTmp.second);
-    if (!pcursor->Valid() || !pcursor->GetKey(entry)) {
-        keyTmp.first = 0; // Invalidate cached key after last record so that Valid() and GetKey() return false
-    } else {
+    if (Valid() && pcursor->Valid()) {
+        // Cache key
+        CoinEntry entry(&keyTmp.second);
+        pcursor->GetKey(entry);
         keyTmp.first = entry.key;
     }
 }
+
+bool CoinsViewCache::Flush(size_t max_flush_size, bool flush_children)
+{
+    LOCK(cs_main);
+    if (!m_base) return false;
+
+    CoinsViewCacheCursor cache_cursor;
+    cache_cursor.m_hash_block = m_hash_block;
+    size_t cache_coins_size = 0;
+    {
+        for (auto it = m_cache_coins.begin(); it != m_cache_coins.end();) {
+            if (it->second.IsDirty()) {
+                cache_cursor.GetMap()[it->first] = it->second;
+                cache_coins_size += it->second.coin.DynamicMemoryUsage();
+            }
+            // Prefetch PUNCTORs and then erase.
+            // See https://github.com/bitcoin/bitcoin/pull/14242#discussion_r257197206 why.
+            it = m_cache_coins.erase(it);
+
+            if (max_flush_size > 0 && cache_coins_size >= max_flush_size) break;
+        }
+    }
+
+    // BTCA: Add uptime data to cache_cursor for BatchWrite
+    {
+        LOCK(m_uptime_mutex);
+        for (const auto& entry : m_cache_uptime) {
+            // Only write if not marked for deletion.
+            // The SetUptime method ensures that if an entry is in m_cache_uptime, it's not marked for deletion.
+            cache_cursor.m_write_uptime[entry.first] = entry.second;
+        }
+        m_cache_uptime.clear();
+
+        for (const auto& entry : m_cache_last_rewarded_uptime) {
+            cache_cursor.m_write_last_rewarded_uptime[entry.first] = entry.second;
+        }
+        m_cache_last_rewarded_uptime.clear();
+
+        for (const auto& entry : m_cache_uptime_delete) {
+            if (entry.second) { // If marked for deletion (value is true)
+                // Ensure we don't try to write and delete the same key in one batch if it was re-added
+                if (cache_cursor.m_write_uptime.find(entry.first) == cache_cursor.m_write_uptime.end()) {
+                    cache_cursor.m_delete_uptime.push_back(entry.first);
+                }
+            }
+        }
+        m_cache_uptime_delete.clear();
+
+        for (const auto& entry : m_cache_last_rewarded_uptime_delete) {
+            if (entry.second) { // If marked for deletion (value is true)
+                if (cache_cursor.m_write_last_rewarded_uptime.find(entry.first) == cache_cursor.m_write_last_rewarded_uptime.end()) {
+                    cache_cursor.m_delete_last_rewarded_uptime.push_back(entry.first);
+                }
+            }
+        }
+        m_cache_last_rewarded_uptime_delete.clear();
+    }
+    // END BTCA
+
+    if (!m_base->BatchWrite(cache_cursor, m_hash_block)) {
+        return false;
+    }
+    m_hash_block = uint256(); // TODO: replace with std::optional
+    return true;
+}
+
+// BTCA: Implementations for connection time state in CoinsViewCache
+bool CoinsViewCache::GetUptime(const CKeyID& keyID, uint64_t& nUptime) const {
+    LOCK(m_uptime_mutex);
+    auto del_it = m_cache_uptime_delete.find(keyID);
+    if (del_it != m_cache_uptime_delete.end() && del_it->second) {
+        return false; // Marked as deleted in cache
+    }
+
+    auto it = m_cache_uptime.find(keyID);
+    if (it != m_cache_uptime.end()) {
+        nUptime = it->second;
+        return true;
+    }
+    // Not in cache or explicitly deleted, try base
+    if (!m_base) return false; // Should not happen if Disconnect() not called
+    return m_base->GetUptime(keyID, nUptime);
+}
+
+bool CoinsViewCache::GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const {
+    LOCK(m_uptime_mutex);
+    auto del_it = m_cache_last_rewarded_uptime_delete.find(keyID);
+    if (del_it != m_cache_last_rewarded_uptime_delete.end() && del_it->second) {
+        return false; // Marked as deleted in cache
+    }
+
+    auto it = m_cache_last_rewarded_uptime.find(keyID);
+    if (it != m_cache_last_rewarded_uptime.end()) {
+        nLastRewardedUptime = it->second;
+        return true;
+    }
+    // Not in cache or explicitly deleted, try base
+    if (!m_base) return false; // Should not happen if Disconnect() not called
+    return m_base->GetLastRewardedUptime(keyID, nLastRewardedUptime);
+}
+
+void CoinsViewCache::SetUptime(const CKeyID& keyID, uint64_t nUptime) {
+    LOCK(m_uptime_mutex);
+    m_cache_uptime[keyID] = nUptime;
+    m_cache_uptime_delete.erase(keyID); // Clear deletion flag if it was set
+}
+
+void CoinsViewCache::SetLastRewardedUptime(const CKeyID& keyID, uint64_t nLastRewardedUptime) {
+    LOCK(m_uptime_mutex);
+    m_cache_last_rewarded_uptime[keyID] = nLastRewardedUptime;
+    m_cache_last_rewarded_uptime_delete.erase(keyID); // Clear deletion flag if it was set
+}
+
+void CoinsViewCache::DeleteUptime(const CKeyID& keyID) {
+    LOCK(m_uptime_mutex);
+    m_cache_uptime.erase(keyID); // Remove from values cache
+    m_cache_uptime_delete[keyID] = true; // Mark as deleted
+}
+
+void CoinsViewCache::DeleteLastRewardedUptime(const CKeyID& keyID) {
+    LOCK(m_uptime_mutex);
+    m_cache_last_rewarded_uptime.erase(keyID); // Remove from values cache
+    m_cache_last_rewarded_uptime_delete[keyID] = true; // Mark as deleted
+}
+// END BTCA
+
+void CoinsViewCache::RemoveCoins(CCoinsView* view, const CTransaction& tx, unsigned int flags, CoinsViewCache* inputs)
+{
+// ... existing code ...

@@ -91,6 +91,25 @@
 #include <validation.h>
 #include <validationinterface.h>
 #include <walletinitinterface.h>
+#ifdef ENABLE_WALLET
+#include <wallet/fees.h>
+#include <wallet/init.h>
+#include <wallet/spend.h>
+#include <wallet/wallet.h>
+#include <interfaces/wallet.h>
+#include <key_io.h> // For DecodeDestination, CKeyID
+#include <policy/policy.h> // For OP_RETURN script construction, GetScriptForDestination
+#include <primitives/transaction.h> // For CTransaction, CMutableTransaction
+#include <script/script.h> // For CScript, OP_RETURN
+#include <serialize.h> // For CDataStream
+#include <streams.h> // For CDataStream SER_NETWORK
+#include <util/strencodings.h> // For HexStr
+#include <chainparams.h> // For CChainParams, COIN
+#include <node/chainstatemanager_args.h> // For ChainstateManager access via NodeContext
+#include <txdb.h> // For CCoinsViewCache access (indirectly via chainstate)
+#include <node/context.h> // For NodeContext definition
+#include <util/moneystr.h> // For FormatMoney
+#endif
 
 #include <algorithm>
 #include <condition_variable>
@@ -1365,6 +1384,9 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     node.scheduler = std::make_unique<CScheduler>();
     auto& scheduler = *node.scheduler;
 
+    // BTCA: Initialize session start time
+    node.m_session_start_time = GetTimeSeconds();
+
     // Start the lightweight task scheduler thread
     scheduler.m_service_thread = std::thread(util::TraceThread, "scheduler", [&] { scheduler.serviceQueue(); });
 
@@ -1387,6 +1409,18 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     assert(!node.validation_signals);
     node.validation_signals = std::make_unique<ValidationSignals>(std::make_unique<SerialTaskRunner>(scheduler));
     auto& validation_signals = *node.validation_signals;
+
+    // BTCA: Schedule periodic connection time transaction
+    // Define BTCA_CONNECTION_TIME_INTERVAL, e.g., 1 hour (for testing, maybe shorter like 1-5 minutes)
+    const std::chrono::minutes BTCA_CONNECTION_TIME_INTERVAL = std::chrono::minutes(60);
+    // Forward declaration or include for CreateAndSendConnectionTimeTransaction will be needed
+    // For now, assume it exists and is accessible.
+    // void CreateAndSendConnectionTimeTransaction(NodeContext& node);
+    scheduler.scheduleEvery([&node] {
+        // Ensure this is defined or replace with actual function call
+        // CreateAndSendConnectionTimeTransaction(node);
+        LogPrintf("BTCA: Placeholder for CreateAndSendConnectionTimeTransaction call.\n"); // Placeholder
+    }, BTCA_CONNECTION_TIME_INTERVAL);
 
     // Create client interfaces for wallets that are supposed to be loaded
     // according to -wallet and -disablewallet options. This only constructs
@@ -2081,6 +2115,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     StartupNotify(args);
 #endif
 
+    if (node.scheduler) {
+        // BTCA: Schedule connection time transaction creation
+        node.scheduler->scheduleEvery([&node] {
+            CreateAndSendConnectionTimeTransaction(node);
+        }, BTCA_CONNECTION_TIME_INTERVAL * 1000); // Convert seconds to milliseconds
+        LogPrintf("BTCA: Scheduled connection time transaction creation every %lld seconds.\\n", BTCA_CONNECTION_TIME_INTERVAL);
+    }
+
     return true;
 }
 
@@ -2128,3 +2170,147 @@ bool StartIndexBackgroundSync(NodeContext& node)
     for (auto index : node.indexes) if (!index->StartBackgroundSync()) return false;
     return true;
 }
+
+namespace { // Anonymous namespace for helper functions specific to init.cpp
+
+// BTCA: Function to create and send connection time transaction
+void CreateAndSendConnectionTimeTransaction(node::NodeContext& node) {
+    if (!node.wallet_loader || !node.chainman) {
+        LogPrintf("BTCA: Wallet loader or Chain Manager not available. Skipping connection time transaction.\n");
+        return;
+    }
+
+    std::shared_ptr<CWallet> const pwallet = GetMainWallet(node);
+    if (!pwallet) {
+        LogPrintf("BTCA: Main wallet not found. Skipping connection time transaction.\n");
+        return;
+    }
+    
+    if (node.chainman->IsInitialBlockDownload()) {
+        LogPrintf("BTCA: Node in IBD. Skipping connection time transaction.\n");
+        return;
+    }
+
+    // Node's identity KeyID and a corresponding public key for OP_RETURN
+    CKeyID node_key_id;
+    CPubKey node_pubkey_for_op_return; 
+    CTxDestination reward_destination_address; // Address for reward and dust
+
+    {
+        LOCK(pwallet->cs_wallet);
+        std::optional<wallet::AddressPurposeTool::DestinationAddress> dest_addr_info = pwallet->GetAddressMan()->GetNewPrimaryDestination(OutputType::BECH32);
+        if (!dest_addr_info) {
+             dest_addr_info = pwallet->GetAddressMan()->GetNewPrimaryDestination(OutputType::LEGACY);
+        }
+
+        if (!dest_addr_info) {
+            LogPrintf("BTCA: Could not get a new primary destination for NodeID. Skipping time transaction.\n");
+            return;
+        }
+        reward_destination_address = dest_addr_info->dest; // Use this for rewards and dust
+
+        // Extract KeyID from the destination
+        const PKHash* pkhash = std::get_if<PKHash>(&reward_destination_address);
+        if (pkhash) {
+            node_key_id = CKeyID(*pkhash);
+        } else {
+            const WitnessV0KeyHash* wpkhash = std::get_if<WitnessV0KeyHash>(&reward_destination_address);
+            if (wpkhash) {
+                node_key_id = CKeyID(*wpkhash);
+            } else {
+                LogPrintf("BTCA: Destination is not PKHash or WitnessV0KeyHash. Cannot determine KeyID. Skipping time transaction.\n");
+                return;
+            }
+        }
+        
+        // Get a compressed public key for the OP_RETURN. It doesn't have to be the one for node_key_id,
+        // but using a primary one is fine. The node_key_id is what ties to the uptime state.
+        node_pubkey_for_op_return = pwallet->GetPrimaryPubKey();
+        if (!node_pubkey_for_op_return.IsValid() || !node_pubkey_for_op_return.IsCompressed()) {
+             LogPrintf("BTCA: Could not get a valid compressed public key for OP_RETURN. Skipping time transaction.\n");
+             return;
+        }
+    }
+
+    uint64_t current_session_uptime = 0;
+    if (node.m_session_start_time > 0 && GetTimeSeconds() > node.m_session_start_time) {
+        current_session_uptime = static_cast<uint64_t>(GetTimeSeconds() - node.m_session_start_time);
+    }
+
+    // Prepare OP_RETURN data
+    CDataStream op_return_data_stream(SER_NETWORK, PROTOCOL_VERSION);
+    op_return_data_stream << std::string("BTCA_TIME");
+    op_return_data_stream << static_cast<uint8_t>(0x01); // Version
+    op_return_data_stream << node_pubkey_for_op_return; // Compressed CPubKey (33 bytes)
+    op_return_data_stream << htobe32(static_cast<uint32_t>(current_session_uptime)); // Uptime in seconds (current session) Big Endian
+
+    CScript scriptOpReturn = CScript() << OP_RETURN << std::vector<unsigned char>(op_return_data_stream.begin(), op_return_data_stream.end());
+
+    // --- BTCA Reward Logic ---
+    uint64_t previously_accumulated_uptime = 0;
+    uint64_t last_rewarded_total_uptime = 0;
+    int reward_units_due = 0;
+    CAmount reward_amount_total = 0;
+
+    if (node.chainman) { // Ensure chainman is still valid
+        CChainState& active_chainstate = node.chainman->ActiveChainstate();
+        const CCoinsViewCache* coins_view = &active_chainstate.CoinsTip();
+
+        LOCK(cs_main); // For CoinsTip access and GetUptime/GetLastRewardedUptime
+        coins_view->GetUptime(node_key_id, previously_accumulated_uptime);
+        coins_view->GetLastRewardedUptime(node_key_id, last_rewarded_total_uptime);
+    } else {
+        LogPrintf("BTCA: Chain Manager became unavailable during connection time transaction. Aborting reward calculation.\n");
+        // Proceed without reward if chainman is gone, OP_RETURN can still be useful.
+    }
+    
+    // The total uptime that will be considered once this transaction's `current_session_uptime` is processed by ConnectBlock
+    uint64_t potential_total_uptime_after_this_tx = previously_accumulated_uptime + current_session_uptime;
+
+    if (BTCA_REWARD_INTERVAL_SECONDS > 0 && potential_total_uptime_after_this_tx > last_rewarded_total_uptime) {
+        uint64_t effective_uptime_for_rewards = potential_total_uptime_after_this_tx - last_rewarded_total_uptime;
+        reward_units_due = static_cast<int>(effective_uptime_for_rewards / BTCA_REWARD_INTERVAL_SECONDS);
+        if (reward_units_due > 0) {
+            reward_amount_total = static_cast<CAmount>(reward_units_due) * BTCA_UPTIME_REWARD_AMOUNT;
+        }
+    }
+    // --- End BTCA Reward Logic ---
+
+    std::vector<wallet::Recipient> recipients;
+    recipients.push_back((wallet::Recipient){scriptOpReturn, 0, false});
+
+    if (reward_amount_total > 0) {
+        CScript rewardScript = GetScriptForDestination(reward_destination_address);
+        recipients.push_back((wallet::Recipient){rewardScript, reward_amount_total, false});
+        LogPrintf("BTCA: Node %s (KeyID: %s) eligible for %d reward units (%s BTCA). Total uptime after this session: %lu, Last rewarded at: %lu.\n",
+                  EncodeDestination(reward_destination_address), node_key_id.ToString(), reward_units_due, FormatMoney(reward_amount_total), potential_total_uptime_after_this_tx, last_rewarded_total_uptime);
+    }
+
+    // Add a tiny output to self (using the same reward_destination_address)
+    CScript dustScript = GetScriptForDestination(reward_destination_address);
+    recipients.push_back((wallet::Recipient){dustScript, 1, false}); // 1 satoshi
+
+    wallet::CreateTransactionOptions tx_options;
+    // tx_options.m_subtract_fee_outputs = {1}; // Subtract fee from reward output if multiple outputs.
+                                            // Or from dust if no reward. Careful with indices.
+                                            // For simplicity, let CreateTransaction handle fees normally.
+
+    auto create_tx_result = wallet::CreateTransaction(*pwallet, recipients, /*nChangePos=*/-1, tx_options, /*coin_control=*/{}, /*solutions=*/{});
+    if (!create_tx_result) {
+        LogPrintf("BTCA: CreateTransaction failed for connection time transaction: %s\n", util::ErrorString(create_tx_result.error()));
+        return;
+    }
+
+    auto& txr = create_tx_result.value();
+    
+    wallet::CommitTransactionResult commit_result = wallet::CommitTransaction(*pwallet, txr.tx, txr.key_value_payload, {});
+    if (commit_result.status != wallet::CommitTransactionResult::Status::OK) {
+        LogPrintf("BTCA: CommitTransaction failed for connection time transaction: %s\n", wallet::StringForCommitResult(commit_result.status));
+        return;
+    }
+
+    LogPrintf("BTCA: Successfully created and broadcasted connection time transaction %s with %u outputs (reward units: %d, session uptime in OP_RETURN: %lu s).\n",
+              txr.tx->GetHash().ToString(), txr.tx->vout.size(), reward_units_due, current_session_uptime);
+}
+
+} // anonymous namespace

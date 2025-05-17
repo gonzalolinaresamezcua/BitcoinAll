@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,6 +14,8 @@
 #include <limits>
 #include <map>
 #include <vector>
+
+#include "pubkey.h"
 
 namespace Consensus {
 
@@ -107,22 +110,23 @@ struct Params {
      * This prevents us from warning about the CSV and segwit activations. */
     int MinBIP9WarningHeight;
     std::array<BIP9Deployment,MAX_VERSION_BITS_DEPLOYMENTS> vDeployments;
-    /** Proof of work parameters */
+    /** Proof of work related parameters are modified for BTCA.
+     *  powLimit is kept to define a constant nBits for blocks (though not used for PoW validation).
+     *  nPowTargetSpacing is kept as it might be useful for the new consensus mechanism (e.g. target block time).
+     */
     uint256 powLimit;
-    bool fPowAllowMinDifficultyBlocks;
-    /**
-      * Enforce BIP94 timewarp attack mitigation. On testnet4 this also enforces
-      * the block storm mitigation.
-      */
-    bool enforce_BIP94;
-    bool fPowNoRetargeting;
     int64_t nPowTargetSpacing;
-    int64_t nPowTargetTimespan;
+
+    // BTCA: Designated block proposer for non-PoW consensus (e.g., for regtest)
+    CKeyID designatedBlockProposerKeyID; // KeyID of the designated proposer
+    CPubKey designatedBlockProposerPubKey; // Public key of the designated proposer (for signature verification)
+    // BTCA: End of designated block proposer fields
+
     std::chrono::seconds PowTargetSpacing() const
     {
         return std::chrono::seconds{nPowTargetSpacing};
     }
-    int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
+    
     /** The best chain should have at least this much work */
     uint256 nMinimumChainWork;
     /** By default assume that the signatures in ancestors of this block are valid */

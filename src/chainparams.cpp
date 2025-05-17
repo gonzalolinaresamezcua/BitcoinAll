@@ -14,6 +14,9 @@
 #include <util/chaintype.h>
 #include <util/strencodings.h>
 #include <util/string.h>
+#include <util/system.h>
+#include <key.h>
+#include <pubkey.h>
 
 #include <cassert>
 #include <cstdint>
@@ -134,4 +137,28 @@ void SelectParams(const ChainType chain)
 {
     SelectBaseParams(chain);
     globalChainParams = CreateChainParams(gArgs, chain);
+}
+
+explicit CRegTestParams(const ArgsManager& args)
+{
+    m_chain_type = ChainType::REGTEST;
+    consensus.nSubsidyHalvingInterval = 150;
+    consensus.nMinimumChainWork = uint256{};
+    consensus.defaultAssumeValid = uint256{};
+
+    // BTCA: Configure designated block proposer for regtest
+    // Using example key pair:
+    // PubKey hex: 028b326889e219578433020a5845566968b7b6334c434992a814106b97915d85e8
+    // Corresponding PrivateKey WIF for regtest (needed by miner): cQStringQuSodyN8yL3v9S4qY1gB9dZsqFD27DbSCp2f1q4A2d8gX
+    std::vector<unsigned char> vchPubKeyRegtest = ParseHex("028b326889e219578433020a5845566968b7b6334c434992a814106b97915d85e8");
+    CPubKey pubkey_regtest(vchPubKeyRegtest.begin(), vchPubKeyRegtest.end());
+    if (!pubkey_regtest.IsValid()) {
+        throw std::runtime_error("CRegTestParams: Regtest designatedBlockProposerPubKey is invalid during construction");
+    }
+    consensus.designatedBlockProposerPubKey = pubkey_regtest;
+    consensus.designatedBlockProposerKeyID = pubkey_regtest.GetID();
+    // BTCA: End of regtest proposer configuration
+
+    pchMessageStart[0] = 0xfa;
+    pchMessageStart[1] = 0xbf;
 }

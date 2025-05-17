@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2022 The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -386,3 +387,31 @@ bool CCoinsViewErrorCatcher::HaveCoin(const COutPoint& outpoint) const
 {
     return ExecuteBackedWrapper<bool>([&]() { return CCoinsViewBacked::HaveCoin(outpoint); }, m_err_callbacks);
 }
+
+// BTCA: Implementations for CCoinsViewErrorCatcher uptime methods
+bool CCoinsViewErrorCatcher::GetUptime(const CKeyID& keyID, uint64_t& nUptime) const
+{
+    try {
+        return base->GetUptime(keyID, nUptime);
+    } catch (const std::runtime_error& e) {
+        for (const auto& f : m_err_callbacks) f();
+        LogPrintf("Error reading GetUptime from database: %s\n", e.what());
+        return false; // Or handle appropriately, e.g., nUptime = 0 and return false
+    }
+}
+
+bool CCoinsViewErrorCatcher::GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const
+{
+    try {
+        return base->GetLastRewardedUptime(keyID, nLastRewardedUptime);
+    } catch (const std::runtime_error& e) {
+        for (const auto& f : m_err_callbacks) f();
+        LogPrintf("Error reading GetLastRewardedUptime from database: %s\n", e.what());
+        return false; // Or handle appropriately
+    }
+}
+
+// End of CCoinsViewErrorCatcher implementations
+
+// Helper functions for Coin compression.
+// ... existing code ...
