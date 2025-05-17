@@ -1,4 +1,5 @@
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,7 +18,8 @@
 #include <uint256.h>
 #include <util/bip32.h>
 #include <util/fs.h>
-#include <util/time.h>
+#include <util/fs_helpers.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <wallet/rpc/util.h>
 #include <wallet/wallet.h>

@@ -58,8 +58,8 @@
 #include <util/moneystr.h>
 #include <util/result.h>
 #include <util/string.h>
-#include <util/time.h>
 #include <util/translation.h>
+#include <util/vector.h>
 #include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/crypter.h>
@@ -70,6 +70,7 @@
 #include <wallet/types.h>
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
+#include <util/bitcoin_time.h> // MODIFICADO
 
 #include <algorithm>
 #include <cassert>

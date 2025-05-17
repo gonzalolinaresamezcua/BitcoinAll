@@ -1,4 +1,5 @@
 // Copyright (c) 2024-present The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,7 +9,7 @@
 #include <test/fuzz/util/wallet.h>
 #include <test/util/random.h>
 #include <test/util/setup_common.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/spend.h>

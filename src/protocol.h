@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2025 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +13,9 @@
 #include <serialize.h>
 #include <streams.h>
 #include <uint256.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
+#include <span.h>
+#include <sync.h>
 
 #include <array>
 #include <cstdint>

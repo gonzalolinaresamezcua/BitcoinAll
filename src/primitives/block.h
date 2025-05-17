@@ -10,7 +10,7 @@
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include "hash.h"
 #include "streams.h"
 #include "protocol.h"

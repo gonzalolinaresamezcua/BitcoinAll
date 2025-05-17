@@ -17,7 +17,9 @@
 #include <cstddef>
 #include <policy/policy.h>
 #include <script/script.h>
-#include <util/time.h>
+#include <threadsafety.h>
+#include <uint256.h>
+#include <util/bitcoin_time.h>
 
 namespace node {
 enum class TransactionError {
