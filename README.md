@@ -38,6 +38,8 @@ Block production uses a **designated proposer** model: each block header must ca
 | Demo address (node 2) | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
 
 > This key is for **regtest / local demos only**. Do not use it on any public network with real value.
+>
+> All demo credentials (RPC, ports, proposer key, reward addresses) are saved in [`demo/credentials.env`](demo/credentials.env) and [`demo/credentials.json`](demo/credentials.json).
 
 On regtest, `generatetoaddress` signs blocks automatically with the embedded proposer key:
 
@@ -153,6 +155,8 @@ La producción de bloques usa un modelo de **proposer designado**: cada cabecera
 | Dirección demo (nodo 2) | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
 
 > Esta clave es **solo para regtest / demos locales**. No la uses en redes públicas con valor real.
+>
+> Todas las credenciales de demo (RPC, puertos, clave del proposer, direcciones de premio) están en [`demo/credentials.env`](demo/credentials.env) y [`demo/credentials.json`](demo/credentials.json).
 
 En regtest, `generatetoaddress` firma automáticamente con la clave embebida del proposer:
 
@@ -268,6 +272,8 @@ BitcoinAll Core 是基于 Bitcoin Core 的完整点对点节点。在当前设�
 | 演示地址（节点 2） | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
 
 > 该密钥**仅用于 regtest / 本地演示**。请勿在任何有真实价值的公网中使用。
+>
+> 全部演示凭证（RPC、端口、提议者密钥、奖励地址）保存在 [`demo/credentials.env`](demo/credentials.env) 与 [`demo/credentials.json`](demo/credentials.json)。
 
 在 regtest 上，`generatetoaddress` 会使用内嵌提议者密钥自动签名：
 
