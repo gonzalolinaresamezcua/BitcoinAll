@@ -503,10 +503,6 @@ public:
     //! Run an internal sanity check on the cache data structure. */
     void SanityCheck() const;
 
-    // BTCA: Add overrides for new CCoinsView virtual methods, following the existing pattern for error catching.
-    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
-    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
-
 private:
     /**
      * @note this is marked const, but may actually append to `cacheCoins`, increasing

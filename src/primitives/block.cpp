@@ -10,7 +10,9 @@
 
 uint256 CBlockHeader::GetHash() const
 {
-    return (HashWriter{} << *this).GetHash();
+    // BTCA: block identity excludes the proposer signature so header sync and
+    // CBlockIndex can stay continuous without embedding the signature in the hash.
+    return GetHashForSignature();
 }
 
 std::string CBlock::ToString() const
