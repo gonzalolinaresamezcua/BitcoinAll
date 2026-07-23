@@ -60,10 +60,10 @@ using util::ToString;
 
 static void EnsureLocalBlockGenerationAllowed(const CChainParams& params)
 {
-    if (!params.MineBlocksOnDemand()) {
+    if (!node::AllowLocalBlockGeneration(params)) {
         throw JSONRPCError(RPC_METHOD_DEPRECATED,
             "BitcoinAll nodes are validation-only and do not mine (Ethereum-style compatible node). "
-            "Local block generation is available only on regtest.");
+            "Local block generation is available on regtest, or on live/main with -btcaallowgenerate=1.");
     }
 }
 
@@ -471,7 +471,7 @@ static RPCHelpMan getmininginfo()
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("mining", false);
     obj.pushKV("proof", "designated-proposer");
-    obj.pushKV("generate_allowed", chainman.GetParams().MineBlocksOnDemand());
+    obj.pushKV("generate_allowed", node::AllowLocalBlockGeneration(chainman.GetParams()));
     const CPubKey& proposer{chainman.GetConsensus().designatedBlockProposerPubKey};
     if (proposer.IsValid()) {
         obj.pushKV("designated_proposer", HexStr(proposer));

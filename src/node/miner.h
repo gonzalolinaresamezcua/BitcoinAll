@@ -230,9 +230,14 @@ int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const int64_t difficulty_a
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 
 /**
+ * BTCA: true when local generate* helpers may run (regtest, or -btcaallowgenerate on live).
+ */
+bool AllowLocalBlockGeneration(const CChainParams& params);
+
+/**
  * BTCA: Sign a block header with the designated proposer key.
- * The embedded regtest private key is used only when allow_embedded_key is true
- * (regtest / mockable chains). Production nodes never embed proposer keys.
+ * The embedded demo private key is used only when allow_embedded_key is true.
+ * Validation-only nodes never embed proposer keys.
  */
 bool SignBlockWithDesignatedProposer(CBlockHeader& block, const Consensus::Params& consensusParams, bool allow_embedded_key);
 

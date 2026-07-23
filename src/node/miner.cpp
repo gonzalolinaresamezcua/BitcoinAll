@@ -65,10 +65,16 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 }
 
 namespace {
-/** Regtest-only WIF for designated proposer private key 1. Never used on production networks. */
-constexpr const char* REGTEST_DESIGNATED_PROPOSER_WIF =
-    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA";
+/** Demo designated proposer private key (integer 1). Used only with -btcaallowgenerate / regtest. */
+constexpr unsigned char EMBEDDED_PROPOSER_KEY[32] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 } // namespace
+
+bool AllowLocalBlockGeneration(const CChainParams& params)
+{
+    return params.MineBlocksOnDemand() || gArgs.GetBoolArg("-btcaallowgenerate", false);
+}
 
 bool SignBlockWithDesignatedProposer(CBlockHeader& block, const Consensus::Params& consensusParams, bool allow_embedded_key)
 {
@@ -82,9 +88,10 @@ bool SignBlockWithDesignatedProposer(CBlockHeader& block, const Consensus::Param
         return false;
     }
 
-    CKey privKey = DecodeSecret(REGTEST_DESIGNATED_PROPOSER_WIF);
+    CKey privKey;
+    privKey.Set(EMBEDDED_PROPOSER_KEY, EMBEDDED_PROPOSER_KEY + sizeof(EMBEDDED_PROPOSER_KEY), /*fCompressedIn=*/true);
     if (!privKey.IsValid()) {
-        throw std::runtime_error(strprintf("%s: Failed to decode regtest designated proposer key.", __func__));
+        throw std::runtime_error(strprintf("%s: Failed to load embedded designated proposer key.", __func__));
     }
     if (privKey.GetPubKey().GetID() != consensusParams.designatedBlockProposerKeyID) {
         throw std::runtime_error(strprintf("%s: Embedded key does not match designatedBlockProposerKeyID.", __func__));
@@ -214,10 +221,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     // Calculate Merkle Root before signing, as it's part of the signed hash
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 
-    // BTCA: Sign only when local block generation is allowed (regtest).
-    // Production nodes are validation-only and never embed proposer keys.
+    // BTCA: Sign only when local block generation is allowed (regtest or -btcaallowgenerate).
+    // Validation-only production nodes never embed proposer keys.
     const Consensus::Params& consensusParams = chainparams.GetConsensus();
-    const bool allow_local_generation{chainparams.MineBlocksOnDemand()};
+    const bool allow_local_generation{AllowLocalBlockGeneration(chainparams)};
     SignBlockWithDesignatedProposer(*pblock, consensusParams, /*allow_embedded_key=*/allow_local_generation);
 
     BlockValidationState state;

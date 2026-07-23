@@ -121,6 +121,29 @@ cd explorer
 
 The explorer shows node status, recent blocks, live activity, manual/auto block generation, and coinbase reward shares between the two demo addresses.
 
+### LIVE mode (main chain)
+
+Local **main/live** network with wallets and spendable BTCA:
+
+```bash
+cmake -B build -DENABLE_WALLET=ON
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+demo/live/start-live.sh          # two main nodes; node1 uses -btcaallowgenerate=1
+demo/live/setup-wallets.sh       # wallets + import keys + mine bootstrap BTCA
+```
+
+Access credentials (RPC, WIFs, descriptor exports with xprv):
+
+- [`demo/live/credentials.env`](demo/live/credentials.env)
+- [`demo/live/credentials.json`](demo/live/credentials.json)
+- [`demo/live/wallets.md`](demo/live/wallets.md)
+- `demo/live/wallet_node*_descriptors.json`
+
+```bash
+build/bin/bitcoin-cli -datadir=demo/live/node1 -rpcwallet=wallet_node1 getbalance
+build/bin/bitcoin-cli -datadir=demo/live/node2 -rpcwallet=wallet_node2 getbalance
+```
+
 ### Docs, license, development
 
 - Build and developer docs: [`doc/`](doc/)
@@ -240,6 +263,24 @@ cd explorer
 
 Muestra el estado de los nodos, bloques recientes, actividad en vivo, minado manual/automático y el reparto de premios coinbase entre las dos direcciones de demo.
 
+### Modo LIVE (cadena main)
+
+Red **main/live** local con wallets y BTCA gastables:
+
+```bash
+cmake -B build -DENABLE_WALLET=ON
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+demo/live/start-live.sh
+demo/live/setup-wallets.sh
+```
+
+Credenciales (RPC, WIF, descriptores con xprv): [`demo/live/`](demo/live/) (`credentials.env`, `credentials.json`, `wallets.md`).
+
+```bash
+build/bin/bitcoin-cli -datadir=demo/live/node1 -rpcwallet=wallet_node1 getbalance
+build/bin/bitcoin-cli -datadir=demo/live/node2 -rpcwallet=wallet_node2 getbalance
+```
+
 ### Docs, licencia y desarrollo
 
 - Documentación: [`doc/`](doc/)
@@ -358,6 +399,24 @@ cd explorer
 ```
 
 浏览器展示节点状态、最近区块、实时活动、手动/自动出块，以及两个演示地址之间的 coinbase 奖励分配。
+
+### LIVE 模式（main 链）
+
+本地 **main/live** 网络，带钱包与可花费 BTCA：
+
+```bash
+cmake -B build -DENABLE_WALLET=ON
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+demo/live/start-live.sh
+demo/live/setup-wallets.sh
+```
+
+访问凭证（RPC、WIF、含 xprv 的描述符导出）：[`demo/live/`](demo/live/)。
+
+```bash
+build/bin/bitcoin-cli -datadir=demo/live/node1 -rpcwallet=wallet_node1 getbalance
+build/bin/bitcoin-cli -datadir=demo/live/node2 -rpcwallet=wallet_node2 getbalance
+```
 
 ### 文档、许可证与开发
 
