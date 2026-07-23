@@ -25,7 +25,7 @@ Block production uses a **designated proposer** model: each block header must ca
 - **Mining RPCs disabled** — `getblocktemplate`, `submitblock`, and `submitheader` are unavailable. `generate*` works only on **regtest**.
 - **`getmininginfo`** reports `mining: false`, `proof: "designated-proposer"`, and the proposer pubkey.
 - **Header sync fix** — block identity hash excludes the signature; `CBlockIndex` persists `vchBlockSignature` so peers can relay continuous headers.
-- **Live block explorer** — see [`explorer/`](explorer/) for blocks, live mining, and reward distribution between demo nodes.
+- **Live block explorer** — see [`demo/explorer/`](demo/explorer/) for blocks, live mining, and reward distribution between demo nodes.
 
 ### Regtest proposer key (demo)
 
@@ -114,12 +114,12 @@ addnode=127.0.0.1:19444
 With both nodes running:
 
 ```bash
-cd explorer
+cd demo/explorer
 ./run.sh
-# open http://127.0.0.1:8080
+# Chrome → http://127.0.0.1:8080
 ```
 
-The explorer shows node status, recent blocks, live activity, manual/auto block generation, and coinbase reward shares between the two demo addresses.
+Download folder: [`demo/explorer`](demo/explorer/). See [`demo/explorer/README.md`](demo/explorer/README.md).
 
 ### LIVE mode (main chain)
 
@@ -167,7 +167,7 @@ La producción de bloques usa un modelo de **proposer designado**: cada cabecera
 - **RPCs de minería deshabilitados** — no estánan `getblocktemplate`, `submitblock` ni `submitheader`. `generate*` solo en **regtest**.
 - **`getmininginfo`** indica `mining: false`, `proof: "designated-proposer"` y la pubkey del proposer.
 - **Sync de headers corregido** — el hash de identidad del bloque excluye la firma; `CBlockIndex` guarda `vchBlockSignature` para retransmitir headers de forma continua.
-- **Explorador en vivo** — en [`explorer/`](explorer/) puedes ver bloques, minar y el reparto de premios entre nodos de demo.
+- **Explorador en vivo** — en [`demo/explorer/`](demo/explorer/) puedes ver bloques, minar y el reparto de premios entre nodos de demo.
 
 ### Clave del proposer en regtest (demo)
 
@@ -256,12 +256,12 @@ addnode=127.0.0.1:19444
 Con ambos nodos en marcha:
 
 ```bash
-cd explorer
+cd demo/explorer
 ./run.sh
-# abrir http://127.0.0.1:8080
+# Chrome → http://127.0.0.1:8080
 ```
 
-Muestra el estado de los nodos, bloques recientes, actividad en vivo, minado manual/automático y el reparto de premios coinbase entre las dos direcciones de demo.
+Descarga: [`demo/explorer`](demo/explorer/). Instrucciones en [`demo/explorer/README.md`](demo/explorer/README.md).
 
 ### Modo LIVE (cadena main)
 
@@ -304,7 +304,7 @@ BitcoinAll Core 是基于 Bitcoin Core 的完整点对点节点。在当前设�
 - **挖矿 RPC 已禁用** — 不可用 `getblocktemplate`、`submitblock`、`submitheader`。`generate*` 仅在 **regtest** 可用。
 - **`getmininginfo`** 返回 `mining: false`、`proof: "designated-proposer"` 以及提议者公钥。
 - **区块头同步修复** — 区块身份哈希不包含签名；`CBlockIndex` 持久化 `vchBlockSignature`，以便连续转发 headers。
-- **实时区块浏览器** — 见 [`explorer/`](explorer/)，可查看区块、实时出块以及演示节点间的奖励分配。
+- **实时区块浏览器** — 见 [`demo/explorer/`](demo/explorer/)，可查看区块、实时出块以及演示节点间的奖励分配。
 
 ### Regtest 提议者密钥（演示）
 
@@ -393,12 +393,12 @@ addnode=127.0.0.1:19444
 两个节点运行后：
 
 ```bash
-cd explorer
+cd demo/explorer
 ./run.sh
-# 打开 http://127.0.0.1:8080
+# Chrome → http://127.0.0.1:8080
 ```
 
-浏览器展示节点状态、最近区块、实时活动、手动/自动出块，以及两个演示地址之间的 coinbase 奖励分配。
+下载目录：[`demo/explorer`](demo/explorer/)。说明见 [`demo/explorer/README.md`](demo/explorer/README.md)。
 
 ### LIVE 模式（main 链）
 
