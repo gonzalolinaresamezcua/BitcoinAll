@@ -154,11 +154,13 @@ La producción de bloques usa un modelo de **proposer designado**: cada cabecera
 | PrivKey WIF (regtest) | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
 | PrivKey hex | `0000000000000000000000000000000000000000000000000000000000000001` |
 | Dirección demo (nodo 1) | `rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835` |
+| WIF recuperación nodo 1 | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
 | Dirección demo (nodo 2) | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
+| WIF recuperación nodo 2 | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87K7XCyj5v` |
 
-> Esta clave es **solo para regtest / demos locales**. No la uses en redes públicas con valor real.
+> Estas claves son **solo para regtest / demos locales**. No las uses en redes públicas con valor real.
 >
-> Todas las credenciales de demo (RPC, puertos, clave del proposer, direcciones de premio) están en [`demo/credentials.env`](demo/credentials.env) y [`demo/credentials.json`](demo/credentials.json).
+> Credenciales y **claves de recuperación de las address** están en [`demo/credentials.env`](demo/credentials.env), [`demo/credentials.json`](demo/credentials.json) y [`demo/wallets.md`](demo/wallets.md).
 
 En regtest, `generatetoaddress` firma automáticamente con la clave embebida del proposer:
 
@@ -271,11 +273,13 @@ BitcoinAll Core 是基于 Bitcoin Core 的完整点对点节点。在当前设�
 | 私钥 WIF（regtest） | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
 | 私钥十六进制 | `0000000000000000000000000000000000000000000000000000000000000001` |
 | 演示地址（节点 1） | `rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835` |
+| 节点 1 恢复 WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
 | 演示地址（节点 2） | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
+| 节点 2 恢复 WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87K7XCyj5v` |
 
-> 该密钥**仅用于 regtest / 本地演示**。请勿在任何有真实价值的公网中使用。
+> 这些密钥**仅用于 regtest / 本地演示**。请勿在任何有真实价值的公网中使用。
 >
-> 全部演示凭证（RPC、端口、提议者密钥、奖励地址）保存在 [`demo/credentials.env`](demo/credentials.env) 与 [`demo/credentials.json`](demo/credentials.json)。
+> 全部凭证与**地址恢复私钥**见 [`demo/credentials.env`](demo/credentials.env)、[`demo/credentials.json`](demo/credentials.json) 与 [`demo/wallets.md`](demo/wallets.md)。
 
 在 regtest 上，`generatetoaddress` 会使用内嵌提议者密钥自动签名：
 
