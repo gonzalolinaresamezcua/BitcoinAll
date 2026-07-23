@@ -12,6 +12,8 @@ node1/fee_estimates.dat
 node1/settings.json
 node1/.lock
 node1/anchors.dat
+node1/banlist.json
+node1/banlist.dat
 node2/blocks/
 node2/chainstate/
 node2/indexes/
@@ -26,3 +28,5 @@ node2/fee_estimates.dat
 node2/settings.json
 node2/.lock
 node2/anchors.dat
+node2/banlist.json
+node2/banlist.dat
