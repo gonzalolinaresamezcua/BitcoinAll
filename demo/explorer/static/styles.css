@@ -271,12 +271,155 @@ main {
   font-size: 0.92rem;
 }
 
+.banner {
+  border: 1px solid rgba(232, 113, 90, 0.45);
+  background: rgba(232, 113, 90, 0.12);
+  padding: 0.9rem 1rem;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.banner.danger strong {
+  color: #ffb4a6;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.err {
+  color: #e8715a !important;
+}
+
+.wallet-bal {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.wallet-bal.warn {
+  color: #e8715a;
+}
+
+.linkish {
+  background: none;
+  border: 0;
+  color: var(--copper);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lookup-form,
+.config-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.lookup-form input[type="text"] {
+  flex: 1 1 22rem;
+  min-width: 16rem;
+  background: #0f141e;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 0.75rem 0.85rem;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+}
+
+.quick-addrs {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--muted);
+  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.chip:hover {
+  color: var(--text);
+  border-color: rgba(224, 161, 90, 0.45);
+}
+
+.lookup-result {
+  margin-top: 1rem;
+}
+
+.lookup-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 0.9rem 1rem;
+}
+
+.lookup-addr {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  word-break: break-all;
+  margin-bottom: 0.55rem;
+}
+
+.lookup-stats {
+  margin: 0.8rem 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.wallet-hits {
+  margin: 0 0 0.8rem;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.config-form label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 1 1 14rem;
+}
+
+.config-form input {
+  background: #0f141e;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 0.7rem 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.88rem;
+}
+
 .mine-controls {
   margin-top: 1.1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: end;
+}
+
+@media (max-width: 900px) {
+  .lookup-stats {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .mine-controls label {

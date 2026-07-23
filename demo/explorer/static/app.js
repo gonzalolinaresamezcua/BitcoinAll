@@ -14,10 +14,27 @@
     mineCount: document.getElementById("mineCount"),
     mineStatus: document.getElementById("mineStatus"),
     tipMeta: document.getElementById("tipMeta"),
+    offlineBanner: document.getElementById("offlineBanner"),
+    offlineHelp: document.getElementById("offlineHelp"),
+    ledeText: document.getElementById("ledeText"),
+    lookupForm: document.getElementById("lookupForm"),
+    lookupAddress: document.getElementById("lookupAddress"),
+    lookupBtn: document.getElementById("lookupBtn"),
+    lookupResult: document.getElementById("lookupResult"),
+    quickAddrs: document.getElementById("quickAddrs"),
+    configForm: document.getElementById("configForm"),
+    cfg1Url: document.getElementById("cfg1Url"),
+    cfg2Url: document.getElementById("cfg2Url"),
+    cfgUser: document.getElementById("cfgUser"),
+    cfgPass: document.getElementById("cfgPass"),
+    cfg1Wallet: document.getElementById("cfg1Wallet"),
+    cfg2Wallet: document.getElementById("cfg2Wallet"),
+    configStatus: document.getElementById("configStatus"),
   };
 
   let lastTip = "";
   let autoMine = { enabled: false };
+  let lastNodes = [];
 
   function shortHash(h) {
     if (!h) return "—";
@@ -53,16 +70,27 @@
   }
 
   function renderNodes(nodes) {
-    els.nodes.innerHTML = (nodes || [])
+    lastNodes = nodes || [];
+    els.nodes.innerHTML = lastNodes
       .map((n) => {
         const online = n.online
           ? `<span class="tag ok">online</span>`
           : `<span class="tag off">offline</span>`;
         const role = `<span class="tag">${n.role || "node"}</span>`;
+        const chain = n.chain ? `<span class="tag">${n.chain}</span>` : "";
+        const wb = n.wallet_balances;
+        let walletHtml = "";
+        if (wb && !wb.error) {
+          walletHtml = `<div class="wallet-bal">wallet <code>${wb.wallet}</code>: <strong>${fmtBtca(
+            wb.trusted
+          )}</strong> gastable · ${fmtBtca(wb.immature)} inmaduro</div>`;
+        } else if (wb && wb.error) {
+          walletHtml = `<div class="wallet-bal warn">wallet ${wb.wallet}: ${wb.error}</div>`;
+        }
         return `
         <article class="node-card" style="--accent:${n.color || "#e0a15a"}">
           <h3>${n.name || n.id}</h3>
-          <div class="node-meta">${online}${role}<span class="tag">${n.proof || "sync"}</span></div>
+          <div class="node-meta">${online}${role}${chain}<span class="tag">${n.proof || "sync"}</span></div>
           <div class="stats">
             <div class="stat"><span>Altura</span><strong>${n.blocks ?? "—"}</strong></div>
             <div class="stat"><span>Peers</span><strong>${n.connections ?? "—"}</strong></div>
@@ -72,10 +100,24 @@
                 : "—"
             }</strong></div>
           </div>
-          <div class="addr">premio → ${n.reward_address || "—"}</div>
-          ${n.error ? `<div class="addr" style="color:#e8715a">${n.error}</div>` : ""}
+          ${walletHtml}
+          <div class="addr">premio → <button type="button" class="linkish" data-addr="${
+            n.reward_address || ""
+          }">${n.reward_address || "—"}</button></div>
+          <div class="addr">rpc → ${n.rpc_url || "—"}</div>
+          ${n.error ? `<div class="addr err">${n.error}</div>` : ""}
         </article>`;
       })
+      .join("");
+
+    els.quickAddrs.innerHTML = lastNodes
+      .filter((n) => n.reward_address)
+      .map(
+        (n) =>
+          `<button type="button" class="chip" data-addr="${n.reward_address}">${n.name}: ${shortHash(
+            n.reward_address
+          )}</button>`
+      )
       .join("");
   }
 
@@ -124,7 +166,11 @@
           </div>
           <div class="prize" style="color:${recipient?.color || "#e0a15a"}">
             ${fmtBtca(b.reward_total)}
-            <small>${recipient?.node_name || "sin premio"} · ${shortHash(recipient?.address || "")}</small>
+            <small>${recipient?.node_name || "sin premio"} ·
+              <button type="button" class="linkish" data-addr="${recipient?.address || ""}">${shortHash(
+          recipient?.address || ""
+        )}</button>
+            </small>
           </div>
         </article>`;
       })
@@ -135,7 +181,18 @@
         pushFeed(`Nuevo bloque #${blocks?.[0]?.height} · ${shortHash(tip)}`, blocks?.[0]?.recipients?.[0]?.color);
       }
       lastTip = tip;
+    } else if (!(blocks || []).length) {
+      els.blocks.innerHTML = `<p class="muted">Sin bloques: los nodos no responden por RPC.</p>`;
     }
+  }
+
+  function fillConfig(cfg) {
+    if (!cfg) return;
+    els.cfg1Url.value = cfg.node1?.url || "";
+    els.cfg2Url.value = cfg.node2?.url || "";
+    els.cfgUser.value = cfg.node1?.user || cfg.node2?.user || "";
+    els.cfg1Wallet.value = cfg.node1?.wallet || "";
+    els.cfg2Wallet.value = cfg.node2?.wallet || "";
   }
 
   function applySnapshot(snap) {
@@ -143,9 +200,26 @@
     renderNodes(snap.nodes);
     renderRewards(snap.rewards);
     renderBlocks(snap.blocks, snap.tip);
+    fillConfig(snap.config);
     autoMine = snap.auto_mine || autoMine;
     els.autoBtn.textContent = `Auto-minado: ${autoMine.enabled ? "ON" : "OFF"}`;
     els.autoBtn.classList.toggle("on", !!autoMine.enabled);
+
+    const online = !!snap.online && (snap.nodes || []).every((n) => n.online);
+    els.offlineBanner.classList.toggle("hidden", online);
+    if (!online) {
+      const err = snap.error || (snap.nodes || []).map((n) => n.error).filter(Boolean)[0] || "";
+      els.offlineHelp.textContent =
+        (snap.help ||
+          "Arranca bitcoind (demo/live/start-live.sh) en esta máquina o corrige la conexión RPC.") +
+        (err ? ` Detalle: ${err}` : "");
+      els.livePill.classList.remove("on");
+      els.liveLabel.textContent = "Nodos offline";
+    } else {
+      els.livePill.classList.add("on");
+      els.liveLabel.textContent = `En vivo · ${snap.chain || "chain"}`;
+      els.ledeText.textContent = `Cadena ${snap.chain || ""} en vivo: validación, saldos y generación firmada.`;
+    }
     if (snap.error) {
       els.mineStatus.textContent = `Aviso: ${snap.error}`;
     }
@@ -161,6 +235,68 @@
     if (!res.ok) throw new Error(data.error || res.statusText);
     return data;
   }
+
+  async function lookup(address) {
+    const addr = (address || "").trim();
+    if (!addr) return;
+    els.lookupAddress.value = addr;
+    els.lookupBtn.disabled = true;
+    els.lookupResult.innerHTML = `<p class="muted">Consultando ${addr}…</p>`;
+    try {
+      const data = await post("/api/address", { address: addr });
+      const utxoRows = (data.utxos || [])
+        .slice(0, 8)
+        .map(
+          (u) =>
+            `<tr><td>${shortHash(u.txid)}</td><td>${fmtBtca(u.amount)}</td><td>${
+              u.confirmations ?? "—"
+            }</td><td>${u.coinbase ? "coinbase" : "tx"}</td></tr>`
+        )
+        .join("");
+      const walletRows = (data.wallets || [])
+        .map((w) => {
+          if (w.error) return `<li>${w.node}/${w.wallet}: ${w.error}</li>`;
+          return `<li>${w.node}/${w.wallet}: ${w.ismine ? "propia" : "externa"} · recibido ${fmtBtca(
+            w.received
+          )}</li>`;
+        })
+        .join("");
+      els.lookupResult.innerHTML = `
+        <div class="lookup-card">
+          <div class="lookup-addr">${data.address}</div>
+          ${data.known_as ? `<div class="tag ok">${data.known_as}</div>` : ""}
+          <div class="stats lookup-stats">
+            <div class="stat"><span>Total</span><strong>${fmtBtca(data.total_btca)}</strong></div>
+            <div class="stat"><span>Gastable</span><strong>${fmtBtca(data.spendable_btca)}</strong></div>
+            <div class="stat"><span>Inmaduro</span><strong>${fmtBtca(data.immature_btca)}</strong></div>
+            <div class="stat"><span>UTXOs</span><strong>${data.utxo_count}</strong></div>
+          </div>
+          ${walletRows ? `<ul class="wallet-hits">${walletRows}</ul>` : ""}
+          <table class="reward-table">
+            <thead><tr><th>Tx</th><th>Monto</th><th>Conf</th><th>Tipo</th></tr></thead>
+            <tbody>${utxoRows || `<tr><td colspan="4">Sin UTXOs</td></tr>`}</tbody>
+          </table>
+        </div>`;
+      pushFeed(`Saldo ${shortHash(addr)}: ${fmtBtca(data.total_btca)}`, "#2bb5a0");
+    } catch (err) {
+      els.lookupResult.innerHTML = `<p class="err">Error: ${err.message}</p>`;
+      pushFeed(`Consulta fallida: ${err.message}`, "#e8715a");
+    } finally {
+      els.lookupBtn.disabled = false;
+    }
+  }
+
+  els.lookupForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    lookup(els.lookupAddress.value);
+  });
+
+  document.body.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-addr]");
+    if (!btn) return;
+    const addr = btn.getAttribute("data-addr");
+    if (addr) lookup(addr);
+  });
 
   els.mineBtn.addEventListener("click", async () => {
     els.mineBtn.disabled = true;
@@ -203,11 +339,39 @@
     }
   });
 
+  els.configForm.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    els.configStatus.textContent = "Reconectando…";
+    try {
+      const body = {
+        password: els.cfgPass.value || undefined,
+        node1: {
+          url: els.cfg1Url.value.trim(),
+          user: els.cfgUser.value.trim(),
+          password: els.cfgPass.value || undefined,
+          wallet: els.cfg1Wallet.value.trim(),
+        },
+        node2: {
+          url: els.cfg2Url.value.trim(),
+          user: els.cfgUser.value.trim(),
+          password: els.cfgPass.value || undefined,
+          wallet: els.cfg2Wallet.value.trim(),
+        },
+      };
+      const res = await post("/api/config", body);
+      if (res.snapshot) applySnapshot(res.snapshot);
+      els.configStatus.textContent = "RPC actualizado.";
+      pushFeed("Configuración RPC actualizada", "#e0a15a");
+      els.cfgPass.value = "";
+    } catch (err) {
+      els.configStatus.textContent = `Error: ${err.message}`;
+    }
+  });
+
   function connectEvents() {
     const es = new EventSource("/api/events");
     es.onopen = () => {
-      els.livePill.classList.add("on");
-      els.liveLabel.textContent = "En vivo";
+      /* pill updated from snapshot online state */
     };
     es.onerror = () => {
       els.livePill.classList.remove("on");
@@ -217,6 +381,7 @@
       try {
         const msg = JSON.parse(ev.data);
         if (msg.event === "snapshot") applySnapshot(msg.data);
+        if (msg.event === "status" && msg.data?.nodes) renderNodes(msg.data.nodes);
         if (msg.event === "mined") {
           const b = msg.data.blocks?.[0];
           pushFeed(
@@ -233,7 +398,7 @@
           pushFeed(msg.data.message || "error", "#e8715a");
         }
       } catch {
-        /* ignore parse errors */
+        /* ignore */
       }
     };
   }
@@ -243,9 +408,10 @@
       const res = await fetch("/api/snapshot");
       const snap = await res.json();
       applySnapshot(snap);
-      pushFeed("Explorador conectado a BitcoinAll", "#e0a15a");
+      pushFeed("Explorador listo", "#e0a15a");
     } catch (err) {
       els.mineStatus.textContent = `No hay snapshot: ${err.message}`;
+      els.offlineBanner.classList.remove("hidden");
     }
     connectEvents();
   }

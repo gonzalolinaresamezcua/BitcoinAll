@@ -28,6 +28,7 @@ NODE1 = {
     "reward_address": os.environ.get(
         "BTCA_NODE1_ADDR", "rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835"
     ),
+    "wallet": os.environ.get("BTCA_NODE1_WALLET") or os.environ.get("BTCA_LIVE_NODE1_WALLET") or "",
     "color": "#d97706",
 }
 NODE2 = {
@@ -40,10 +41,18 @@ NODE2 = {
     "reward_address": os.environ.get(
         "BTCA_NODE2_ADDR", "rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq"
     ),
+    "wallet": os.environ.get("BTCA_NODE2_WALLET") or os.environ.get("BTCA_LIVE_NODE2_WALLET") or "",
     "color": "#0d9488",
 }
 NODES = {n["id"]: n for n in (NODE1, NODE2)}
 ADDR_TO_NODE = {n["reward_address"]: n for n in NODES.values()}
+
+
+def refresh_addr_map() -> None:
+    ADDR_TO_NODE.clear()
+    for n in NODES.values():
+        if n.get("reward_address"):
+            ADDR_TO_NODE[n["reward_address"]] = n
 
 HOST = os.environ.get("BTCA_EXPLORER_HOST", "0.0.0.0")
 PORT = int(os.environ.get("BTCA_EXPLORER_PORT", "8080"))
@@ -62,21 +71,24 @@ _auto_mine = {
 }
 
 
-def rpc(node: dict[str, Any], method: str, params: list[Any] | None = None) -> Any:
+def rpc(node: dict[str, Any], method: str, params: list[Any] | None = None, *, wallet: str | None = None) -> Any:
+    base = node["url"].rstrip("/")
+    url = f"{base}/wallet/{wallet}" if wallet else base
     payload = json.dumps(
         {"jsonrpc": "1.0", "id": "btca-explorer", "method": method, "params": params or []}
     ).encode()
     req = urllib.request.Request(
-        node["url"],
+        url,
         data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
     )
     password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-    password_mgr.add_password(None, node["url"], node["user"], node["password"])
+    password_mgr.add_password(None, url, node["user"], node["password"])
+    password_mgr.add_password(None, base, node["user"], node["password"])
     opener = urllib.request.build_opener(urllib.request.HTTPBasicAuthHandler(password_mgr))
     try:
-        with opener.open(req, timeout=20) as resp:
+        with opener.open(req, timeout=60) as resp:
             body = json.loads(resp.read().decode())
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode(errors="ignore")
@@ -101,6 +113,22 @@ def broadcast(event: str, data: Any) -> None:
             _subscribers.remove(q)
 
 
+def wallet_balances(node: dict[str, Any]) -> dict[str, Any] | None:
+    wallet = (node.get("wallet") or "").strip()
+    if not wallet:
+        return None
+    try:
+        bal = rpc(node, "getbalances", wallet=wallet)
+        return {
+            "wallet": wallet,
+            "trusted": float((bal.get("mine") or {}).get("trusted") or 0),
+            "immature": float((bal.get("mine") or {}).get("immature") or 0),
+            "untrusted_pending": float((bal.get("mine") or {}).get("untrusted_pending") or 0),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"wallet": wallet, "error": str(exc)}
+
+
 def node_status(node: dict[str, Any]) -> dict[str, Any]:
     try:
         chain = rpc(node, "getblockchaininfo")
@@ -113,7 +141,11 @@ def node_status(node: dict[str, Any]) -> dict[str, Any]:
             "role": node["role"],
             "color": node["color"],
             "reward_address": node["reward_address"],
+            "rpc_url": node["url"],
+            "wallet": node.get("wallet") or None,
+            "wallet_balances": wallet_balances(node),
             "online": True,
+            "chain": chain.get("chain"),
             "blocks": chain["blocks"],
             "headers": chain["headers"],
             "bestblockhash": chain["bestblockhash"],
@@ -143,9 +175,120 @@ def node_status(node: dict[str, Any]) -> dict[str, Any]:
             "role": node["role"],
             "color": node["color"],
             "reward_address": node["reward_address"],
+            "rpc_url": node["url"],
+            "wallet": node.get("wallet") or None,
+            "wallet_balances": None,
             "online": False,
             "error": str(exc),
         }
+
+
+def lookup_address(address: str) -> dict[str, Any]:
+    address = (address or "").strip()
+    if not address:
+        raise ValueError("Indica una dirección BTCA")
+    info = rpc(NODE1, "validateaddress", [address])
+    if not info.get("isvalid"):
+        raise ValueError("Dirección inválida para esta red")
+    scan = rpc(NODE1, "scantxoutset", ["start", [f"addr({address})"]])
+    unspents = scan.get("unspents") or []
+    total = scan.get("total_amount")
+    if total is None:
+        total = sum(float(u.get("amount") or 0) for u in unspents)
+    else:
+        total = float(total)
+    spendable = sum(float(u.get("amount") or 0) for u in unspents if not u.get("coinbase") or int(u.get("confirmations") or 0) >= 100)
+    immature = round(total - spendable, 8)
+    utxos = [
+        {
+            "txid": u.get("txid"),
+            "vout": u.get("vout"),
+            "amount": float(u.get("amount") or 0),
+            "confirmations": u.get("confirmations"),
+            "coinbase": bool(u.get("coinbase")),
+            "height": u.get("height"),
+        }
+        for u in sorted(unspents, key=lambda x: (-int(x.get("confirmations") or 0), x.get("txid") or ""))
+    ][:50]
+    wallet_hits: list[dict[str, Any]] = []
+    for node in (NODE1, NODE2):
+        w = (node.get("wallet") or "").strip()
+        if not w:
+            continue
+        try:
+            received = float(rpc(node, "getreceivedbyaddress", [address, 0], wallet=w))
+            ainfo = rpc(node, "getaddressinfo", [address], wallet=w)
+            wallet_hits.append(
+                {
+                    "node": node["id"],
+                    "wallet": w,
+                    "ismine": bool(ainfo.get("ismine")),
+                    "iswatchonly": bool(ainfo.get("iswatchonly")),
+                    "received": received,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            wallet_hits.append({"node": node["id"], "wallet": w, "error": str(exc)})
+    return {
+        "address": address,
+        "isvalid": True,
+        "isscript": bool(info.get("isscript")),
+        "iswitness": bool(info.get("iswitness")),
+        "chain_height": scan.get("height"),
+        "bestblock": scan.get("bestblock"),
+        "total_btca": round(float(total), 8),
+        "spendable_btca": round(float(spendable), 8),
+        "immature_btca": round(float(immature), 8),
+        "utxo_count": len(unspents),
+        "utxos": utxos,
+        "wallets": wallet_hits,
+        "known_as": ADDR_TO_NODE[address]["name"] if address in ADDR_TO_NODE else None,
+    }
+
+
+def rpc_config() -> dict[str, Any]:
+    return {
+        "node1": {
+            "url": NODE1["url"],
+            "user": NODE1["user"],
+            "reward_address": NODE1["reward_address"],
+            "wallet": NODE1.get("wallet") or "",
+        },
+        "node2": {
+            "url": NODE2["url"],
+            "user": NODE2["user"],
+            "reward_address": NODE2["reward_address"],
+            "wallet": NODE2.get("wallet") or "",
+        },
+        "help": (
+            "El explorador lee bitcoind por RPC en ESTA máquina. "
+            "Si ves WinError 10061 / connection refused, arranca los nodos "
+            "(demo/live/start-live.sh) o apunta las URLs RPC correctas."
+        ),
+    }
+
+
+def apply_rpc_config(data: dict[str, Any]) -> dict[str, Any]:
+    global _last_tip
+    for key, node in (("node1", NODE1), ("node2", NODE2)):
+        cfg = data.get(key) or {}
+        if cfg.get("url"):
+            node["url"] = str(cfg["url"]).rstrip("/")
+        if cfg.get("user") is not None:
+            node["user"] = str(cfg["user"])
+        if cfg.get("password"):
+            node["password"] = str(cfg["password"])
+        if cfg.get("reward_address"):
+            node["reward_address"] = str(cfg["reward_address"]).strip()
+        if "wallet" in cfg:
+            node["wallet"] = str(cfg.get("wallet") or "").strip()
+    if data.get("password") and not (data.get("node1") or {}).get("password"):
+        NODE1["password"] = str(data["password"])
+        NODE2["password"] = str(data["password"])
+    refresh_addr_map()
+    _block_cache.clear()
+    _last_tip = ""
+    return rpc_config()
 
 
 def enrich_block(height: int, verbosity: int = 2) -> dict[str, Any] | None:
@@ -303,10 +446,12 @@ def mine_blocks(count: int, target: str) -> dict[str, Any]:
 
 def build_snapshot() -> dict[str, Any]:
     nodes = [node_status(NODE1), node_status(NODE2)]
+    online = all(n.get("online") for n in nodes)
     try:
         blocks = list_blocks(20)
         rewards = rewards_summary()
         tip = rpc(NODE1, "getbestblockhash")
+        chain = nodes[0].get("chain")
     except Exception as exc:  # noqa: BLE001
         return {
             "nodes": nodes,
@@ -314,7 +459,10 @@ def build_snapshot() -> dict[str, Any]:
             "rewards": {"height": 0, "total_btca": 0, "nodes": []},
             "tip": None,
             "auto_mine": dict(_auto_mine),
+            "config": rpc_config(),
+            "online": False,
             "error": str(exc),
+            "help": rpc_config()["help"],
             "ts": int(time.time()),
         }
     return {
@@ -322,8 +470,12 @@ def build_snapshot() -> dict[str, Any]:
         "blocks": blocks,
         "rewards": rewards,
         "tip": tip,
+        "chain": chain,
         "auto_mine": dict(_auto_mine),
+        "config": rpc_config(),
+        "online": online,
         "error": None,
+        "help": None,
         "ts": int(time.time()),
     }
 
@@ -410,11 +562,19 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/health":
             return self._json(200, {"ok": True, "service": "bitcoinall-explorer"})
+        if path == "/api/config":
+            return self._json(200, rpc_config())
         if path == "/api/snapshot":
             try:
                 return self._json(200, build_snapshot())
             except Exception as exc:  # noqa: BLE001
                 return self._json(500, {"error": str(exc)})
+        if path == "/api/address":
+            try:
+                addr = (qs.get("address") or [""])[0]
+                return self._json(200, lookup_address(addr))
+            except Exception as exc:  # noqa: BLE001
+                return self._json(400, {"error": str(exc)})
         if path == "/api/blocks":
             limit = int((qs.get("limit") or ["24"])[0])
             try:
@@ -458,6 +618,21 @@ class Handler(BaseHTTPRequestHandler):
                 target = str(data.get("target", "node1"))
                 result = mine_blocks(count, target)
                 return self._json(200, result)
+            except Exception as exc:  # noqa: BLE001
+                return self._json(400, {"error": str(exc)})
+
+        if path == "/api/address":
+            try:
+                return self._json(200, lookup_address(str(data.get("address") or "")))
+            except Exception as exc:  # noqa: BLE001
+                return self._json(400, {"error": str(exc)})
+
+        if path == "/api/config":
+            try:
+                cfg = apply_rpc_config(data)
+                snap = build_snapshot()
+                broadcast("snapshot", snap)
+                return self._json(200, {"config": cfg, "snapshot": snap})
             except Exception as exc:  # noqa: BLE001
                 return self._json(400, {"error": str(exc)})
 

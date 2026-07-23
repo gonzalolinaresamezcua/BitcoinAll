@@ -12,20 +12,29 @@ Or from the PR: https://github.com/gonzalolinaresamezcua/BitcoinAll/pull/1
 ## Open in Chrome
 
 The UI needs the local Python server (it talks to `bitcoind` over RPC).  
-**Do not** open `static/index.html` directly as `file://` — use the URL below.
+**Do not** open `static/index.html` as `file://`.  
+**Do not** open paths like `/demo/live/run-explorer.sh` in the browser — that is a shell script.
 
 ```bash
-# 1) Start your BitcoinAll nodes (LIVE or regtest)
-#    LIVE:   demo/live/start-live.sh
-#    regtest: your two local bitcoind processes
+# 1) Start BitcoinAll nodes on THIS machine
+demo/live/start-live.sh          # LIVE/main
+# or your regtest bitcoind pair
 
 # 2) Start the explorer
 cd demo/explorer
 ./run.sh
 
-# 3) In Chrome open:
-#    http://127.0.0.1:8080
+# 3) Chrome → ONLY this URL:
+#    http://127.0.0.1:8080/
 ```
+
+If nodes show **OFFLINE** / `WinError 10061`, `bitcoind` is not listening on the RPC ports on that PC. Start the nodes first, or set RPC URLs in the **Conexión RPC** panel.
+
+### Features
+- Node status + wallet balances
+- Block list / mining / reward share
+- **Address balance lookup** (input + UTXOs via `scantxoutset`)
+- RPC reconnect form
 
 `./run.sh` auto-loads `demo/live/credentials.env` if present, otherwise `demo/credentials.env`.
 

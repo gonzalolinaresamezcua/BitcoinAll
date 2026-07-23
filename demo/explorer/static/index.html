@@ -20,8 +20,8 @@
       <div class="brand-block">
         <p class="brand">BitcoinAll</p>
         <h1>Explorador de bloques</h1>
-        <p class="lede">
-          Cadena regtest en vivo: validación entre nodos, generación firmada y reparto de premios.
+        <p class="lede" id="ledeText">
+          Consulta bloques, saldos por dirección y generación de premios entre nodos.
         </p>
       </div>
       <div class="live-pill" id="livePill">
@@ -31,7 +31,36 @@
     </header>
 
     <main>
+      <div class="banner danger hidden" id="offlineBanner" role="alert">
+        <strong>Nodos offline.</strong>
+        <span id="offlineHelp">
+          El explorador no puede hablar con bitcoind (connection refused / WinError 10061).
+          Arranca los nodos en esta misma máquina (`demo/live/start-live.sh`) o configura el RPC abajo.
+        </span>
+      </div>
+
       <section class="nodes" id="nodes"></section>
+
+      <section class="panel lookup-panel">
+        <div class="panel-head">
+          <h2>Consultar saldo de dirección</h2>
+          <p>Pega una address BTCA (`btca1…` / `rbtca1…`) para ver UTXOs y saldo en la cadena.</p>
+        </div>
+        <form class="lookup-form" id="lookupForm">
+          <input
+            id="lookupAddress"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="btca1qw508d6qejxtdg4y5r3zarvary0c5xw7kj7tmhx"
+          />
+          <button class="btn primary" type="submit" id="lookupBtn">Consultar</button>
+        </form>
+        <div class="quick-addrs" id="quickAddrs"></div>
+        <div class="lookup-result" id="lookupResult">
+          <p class="muted">Aún no has consultado ninguna dirección.</p>
+        </div>
+      </section>
 
       <section class="panel mine-panel">
         <div class="panel-head">
@@ -95,6 +124,41 @@
           <p>Hash, altura, transacciones y destino del premio.</p>
         </div>
         <div class="blocks" id="blocks"></div>
+      </section>
+
+      <section class="panel config-panel">
+        <div class="panel-head">
+          <h2>Conexión RPC</h2>
+          <p>URLs de bitcoind que usa este explorador (deben estar accesibles desde donde corre `server.py`).</p>
+        </div>
+        <form class="config-form" id="configForm">
+          <label>
+            Node1 RPC URL
+            <input id="cfg1Url" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Node2 RPC URL
+            <input id="cfg2Url" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Usuario RPC
+            <input id="cfgUser" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Password RPC
+            <input id="cfgPass" type="password" autocomplete="off" />
+          </label>
+          <label>
+            Wallet nodo1
+            <input id="cfg1Wallet" type="text" placeholder="wallet_node1" spellcheck="false" />
+          </label>
+          <label>
+            Wallet nodo2
+            <input id="cfg2Wallet" type="text" placeholder="wallet_node2" spellcheck="false" />
+          </label>
+          <button class="btn primary" type="submit">Guardar y reconectar</button>
+        </form>
+        <p class="mine-status" id="configStatus"></p>
       </section>
     </main>
 
