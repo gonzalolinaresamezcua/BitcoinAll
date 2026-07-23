@@ -14,6 +14,7 @@
 #include <logging.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <pubkey.h>
 #include <script/interpreter.h>
 #include <script/script.h>
 #include <uint256.h>
@@ -24,6 +25,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <type_traits>
 
 using namespace util::hex_literals;
@@ -37,6 +39,27 @@ auto consteval_ctor(auto&& input) { return input; }
 #else
 #define consteval_ctor(input) (input)
 #endif
+
+/** Compressed secp256k1 pubkey for the BTCA designated block proposer (private key 1). */
+static constexpr const char* BTCA_DESIGNATED_PROPOSER_PUBKEY_HEX =
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+
+static void ConfigureNonMiningConsensus(Consensus::Params& consensus, int64_t target_spacing, int64_t target_timespan)
+{
+    consensus.nPowTargetSpacing = target_spacing;
+    consensus.nPowTargetTimespan = target_timespan;
+    consensus.fPowAllowMinDifficultyBlocks = false;
+    consensus.fPowNoRetargeting = true;
+    consensus.enforce_BIP94 = false;
+
+    const std::vector<unsigned char> vch_pub = ParseHex(BTCA_DESIGNATED_PROPOSER_PUBKEY_HEX);
+    CPubKey pubkey(vch_pub.begin(), vch_pub.end());
+    if (!pubkey.IsValid()) {
+        throw std::runtime_error("BTCA designatedBlockProposerPubKey is invalid");
+    }
+    consensus.designatedBlockProposerPubKey = pubkey;
+    consensus.designatedBlockProposerKeyID = pubkey.GetID();
+}
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -88,9 +111,9 @@ public:
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.script_flag_exceptions.emplace( // BIP16 exception
-            uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), SCRIPT_VERIFY_NONE);
+            uint256{"00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"}, SCRIPT_VERIFY_NONE);
         consensus.script_flag_exceptions.emplace( // Taproot exception
-            uint256S("0x0000000000000000000f14c35b2d841e986ab5441de8c585d5ffe55ea1e395ad"), SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS);
+            uint256{"0000000000000000000f14c35b2d841e986ab5441de8c585d5ffe55ea1e395ad"}, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS);
         consensus.BIP34Height = 0;
         consensus.BIP34Hash = uint256();
         consensus.BIP65Height = 0;
@@ -98,8 +121,8 @@ public:
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.powLimit = uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        ConfigureNonMiningConsensus(consensus, /*target_spacing=*/10 * 60, /*target_timespan=*/14 * 24 * 60 * 60);
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -176,8 +199,8 @@ public:
         consensus.CSVHeight = 0;   
         consensus.SegwitHeight = 0; 
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.powLimit = uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        ConfigureNonMiningConsensus(consensus, /*target_spacing=*/10 * 60, /*target_timespan=*/14 * 24 * 60 * 60);
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -254,8 +277,8 @@ public:
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.powLimit = uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        ConfigureNonMiningConsensus(consensus, /*target_spacing=*/10 * 60, /*target_timespan=*/14 * 24 * 60 * 60);
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -333,7 +356,7 @@ public:
     {
         m_chain_type = ChainType::SIGNET;
         consensus.signet_blocks = true;
-        consensus.signet_challenge = Assert(options.challenge);
+        consensus.signet_challenge = options.challenge.value_or(std::vector<uint8_t>{});
 
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.script_flag_exceptions.clear();
@@ -344,8 +367,8 @@ public:
         consensus.CSVHeight = 0;   
         consensus.SegwitHeight = 0; 
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 5 * 60;
+        consensus.powLimit = uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        ConfigureNonMiningConsensus(consensus, /*target_spacing=*/5 * 60, /*target_timespan=*/5 * 60 * 1008);
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -422,8 +445,9 @@ public:
         consensus.CSVHeight = 0;   
         consensus.SegwitHeight = 0; 
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 1;
+        consensus.powLimit = uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        ConfigureNonMiningConsensus(consensus, /*target_spacing=*/1, /*target_timespan=*/100);
+        consensus.enforce_BIP94 = opts.enforce_bip94;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;

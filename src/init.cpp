@@ -1385,7 +1385,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     auto& scheduler = *node.scheduler;
 
     // BTCA: Initialize session start time
-    node.m_session_start_time = GetTimeSeconds();
+    node.m_session_start_time = TicksSinceEpoch<std::chrono::seconds>(NodeClock::now());
 
     // Start the lightweight task scheduler thread
     scheduler.m_service_thread = std::thread(util::TraceThread, "scheduler", [&] { scheduler.serviceQueue(); });
@@ -2115,6 +2115,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     StartupNotify(args);
 #endif
 
+#ifdef ENABLE_WALLET
     if (node.scheduler) {
         // BTCA: Schedule connection time transaction creation
         node.scheduler->scheduleEvery([&node] {
@@ -2122,6 +2123,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         }, BTCA_CONNECTION_TIME_INTERVAL * 1000); // Convert seconds to milliseconds
         LogPrintf("BTCA: Scheduled connection time transaction creation every %lld seconds.\\n", BTCA_CONNECTION_TIME_INTERVAL);
     }
+#endif
 
     return true;
 }
@@ -2173,6 +2175,7 @@ bool StartIndexBackgroundSync(NodeContext& node)
 
 namespace { // Anonymous namespace for helper functions specific to init.cpp
 
+#ifdef ENABLE_WALLET
 // BTCA: Function to create and send connection time transaction
 void CreateAndSendConnectionTimeTransaction(node::NodeContext& node) {
     if (!node.wallet_loader || !node.chainman) {
@@ -2312,5 +2315,6 @@ void CreateAndSendConnectionTimeTransaction(node::NodeContext& node) {
     LogPrintf("BTCA: Successfully created and broadcasted connection time transaction %s with %u outputs (reward units: %d, session uptime in OP_RETURN: %lu s).\n",
               txr.tx->GetHash().ToString(), txr.tx->vout.size(), reward_units_due, current_session_uptime);
 }
+#endif // ENABLE_WALLET
 
 } // anonymous namespace

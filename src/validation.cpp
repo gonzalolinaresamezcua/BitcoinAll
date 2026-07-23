@@ -3923,9 +3923,11 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
 
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-    // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
-        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
+    // BTCA: PoW is disabled. fCheckPOW now gates designated-proposer signature
+    // verification so ordinary nodes remain validation-compatible without mining.
+    if (fCheckPOW && !CheckBlockProposerSignature(block, consensusParams)) {
+        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "bad-blk-sig", "block proposer signature failed");
+    }
 
     return true;
 }

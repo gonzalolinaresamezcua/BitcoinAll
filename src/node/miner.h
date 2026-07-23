@@ -229,6 +229,13 @@ int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const int64_t difficulty_a
 
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 
+/**
+ * BTCA: Sign a block header with the designated proposer key.
+ * The embedded regtest private key is used only when allow_embedded_key is true
+ * (regtest / mockable chains). Production nodes never embed proposer keys.
+ */
+bool SignBlockWithDesignatedProposer(CBlockHeader& block, const Consensus::Params& consensusParams, bool allow_embedded_key);
+
 /** Update an old GenerateCoinbaseCommitment from CreateNewBlock after the block txs have changed */
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 

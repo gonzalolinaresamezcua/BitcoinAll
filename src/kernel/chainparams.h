@@ -96,11 +96,11 @@ public:
     uint64_t AssumedBlockchainSize() const { return m_assumed_blockchain_size; }
     /** Minimum free space (in GB) needed for data directory when pruned; Does not include prune target*/
     uint64_t AssumedChainStateSize() const { return m_assumed_chain_state_size; }
-    /** Whether it is possible to mine blocks on demand (no retargeting) */
-    bool MineBlocksOnDemand() const { 
-        // BTCA: In a non-PoW context, block generation on demand is generally true for test networks.
-        // fPowNoRetargeting has been removed from consensus.Params.
-        return m_chain_type == ChainType::REGTEST || m_chain_type == ChainType::TESTNET || m_chain_type == ChainType::SIGNET;
+    /** Whether local block generation helpers (regtest generate*) are available. */
+    bool MineBlocksOnDemand() const {
+        // BTCA: Production nodes are validation-only (no mining), like Ethereum full nodes.
+        // Local block production helpers remain available only on regtest.
+        return m_chain_type == ChainType::REGTEST;
     }
     /** Return the chain type string */
     std::string GetChainTypeString() const { return ChainTypeToString(m_chain_type); }
