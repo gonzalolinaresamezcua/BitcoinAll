@@ -1,80 +1,425 @@
-BitcoinAll Core integration/staging tree
-=====================================
+# BitcoinAll Core
 
-@bitcoinall
-Moneda descentralizada para todo el publico
+**BitcoinAll** — decentralized money for everyone / moneda descentralizada para todo el público / 面向所有人的去中心化货币
 
-For an immediately usable, binary version of the BitcoinAll Core software, see
-@bitcoinall/en/download/.
+| Language | Section |
+|----------|---------|
+| English | [English](#english) |
+| Español | [Español](#español) |
+| 中文 | [中文](#中文) |
 
-What is BitcoinAll Core?
----------------------
+---
 
-BitcoinAll Core connects to the Bitcoin peer-to-peer network to download and fully
-validate blocks and transactions. It also includes a wallet and graphical user
-interface, which can be optionally built.
+## English
 
-Further information about BitcoinAll Core is available in the [doc folder](/doc).
+### What is BitcoinAll?
 
-License
--------
+BitcoinAll Core is a full peer-to-peer node derived from Bitcoin Core. In the current design, **nodes are validation-compatible** (sync and verify the chain) and **do not mine with Proof-of-Work**, similar in role to an Ethereum full node: they validate blocks and transactions, keep consensus, and relay data.
 
-BitcoinAll Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/licenses/MIT.
+Block production uses a **designated proposer** model: each block header must carry a valid signature from the configured proposer public key instead of a PoW hash puzzle.
 
-Development Process
--------------------
+### Recent changes
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable. [Tags](https://github.com/bitcoin/bitcoin/tags) are created
-regularly from release branches to indicate new official, stable release versions of BitcoinAll Core.
+- **No PoW mining on nodes** — peers validate and sync; they are not miners.
+- **Proposer signature consensus** — `CheckBlockHeader` verifies the designated proposer’s signature (`bad-blk-sig` if invalid). Genesis may be unsigned.
+- **Mining RPCs disabled** — `getblocktemplate`, `submitblock`, and `submitheader` are unavailable. `generate*` works only on **regtest**.
+- **`getmininginfo`** reports `mining: false`, `proof: "designated-proposer"`, and the proposer pubkey.
+- **Header sync fix** — block identity hash excludes the signature; `CBlockIndex` persists `vchBlockSignature` so peers can relay continuous headers.
+- **Live block explorer** — see [`demo/explorer/`](demo/explorer/) for blocks, live mining, and reward distribution between demo nodes.
 
-The https://github.com/bitcoin-core/gui repository is used exclusively for the
-development of the GUI. Its master branch is identical in all monotree
-repositories. Release branches and tags do not exist, so please do not fork
-that repository unless it is for development reasons.
+### Regtest proposer key (demo)
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+| Field | Value |
+|-------|-------|
+| PubKey | `0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798` |
+| PrivKey WIF (regtest) | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
+| PrivKey hex | `0000000000000000000000000000000000000000000000000000000000000001` |
+| Demo address (node 1) | `rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835` |
+| Node 1 recovery WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
+| Demo address (node 2) | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
+| Node 2 recovery WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87K7XCyj5v` |
 
-Testing
--------
+> These keys are for **regtest / local demos only**. Do not use them on any public network with real value.
+>
+> All credentials and **address recovery keys** are in [`demo/credentials.env`](demo/credentials.env), [`demo/credentials.json`](demo/credentials.json), and [`demo/wallets.md`](demo/wallets.md).
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
+On regtest, `generatetoaddress` signs blocks automatically with the embedded proposer key:
 
-### Automated Testing
+```bash
+bitcoin-cli -datadir=/tmp/btca-node1 \
+  generatetoaddress 101 rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835
+```
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled during the generation of the build system) with: `ctest`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+### Run two nodes (regtest)
 
-There are also [regression and integration tests](/test), written
-in Python.
-These tests can be run (if the [test dependencies](/test) are installed) with: `build/test/functional/test_runner.py`
-(assuming `build` is your build directory).
+Build (example, wallet may be off depending on your tree):
 
-The CI (Continuous Integration) systems make sure that every pull request is built for Windows, Linux, and macOS,
-and that unit/sanity tests are run automatically.
+```bash
+cmake -B build -DENABLE_WALLET=OFF
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+```
 
-### Manual Quality Assurance (QA) Testing
+Example configs (network-specific options under `[regtest]`):
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+**Node 1** (`/tmp/btca-node1/bitcoin.conf`):
 
-Translations
-------------
+```ini
+regtest=1
+server=1
+rpcuser=btca
+rpcpassword=btca-demo
+discover=0
+listenonion=0
+dnsseed=0
+fixedseeds=0
 
-Changes to translations as well as new translations can be submitted to
-[BitcoinAll Core's Transifex page]
+[regtest]
+port=19444
+bind=127.0.0.1
+rpcport=18443
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+```
 
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
+**Node 2** (`/tmp/btca-node2/bitcoin.conf`):
 
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+```ini
+regtest=1
+server=1
+rpcuser=btca
+rpcpassword=btca-demo
+discover=0
+listenonion=0
+dnsseed=0
+fixedseeds=0
+
+[regtest]
+port=19455
+bind=127.0.0.1
+rpcport=18453
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+addnode=127.0.0.1:19444
+```
+
+```bash
+./build/bin/bitcoind -datadir=/tmp/btca-node1 &
+./build/bin/bitcoind -datadir=/tmp/btca-node2 &
+./build/bin/bitcoin-cli -datadir=/tmp/btca-node1 getblockchaininfo
+./build/bin/bitcoin-cli -datadir=/tmp/btca-node2 getpeerinfo
+```
+
+### Block explorer
+
+With both nodes running:
+
+```bash
+cd demo/explorer
+./run.sh
+# Chrome → http://127.0.0.1:8080
+```
+
+Download folder: [`demo/explorer`](demo/explorer/). See [`demo/explorer/README.md`](demo/explorer/README.md).
+
+### LIVE mode (main chain)
+
+Local **main/live** network with wallets and spendable BTCA:
+
+```bash
+cmake -B build -DENABLE_WALLET=ON
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+demo/live/start-live.sh          # two main nodes; node1 uses -btcaallowgenerate=1
+demo/live/setup-wallets.sh       # wallets + import keys + mine bootstrap BTCA
+```
+
+Access credentials (RPC, WIFs, descriptor exports with xprv):
+
+- [`demo/live/credentials.env`](demo/live/credentials.env)
+- [`demo/live/credentials.json`](demo/live/credentials.json)
+- [`demo/live/wallets.md`](demo/live/wallets.md)
+- `demo/live/wallet_node*_descriptors.json`
+
+```bash
+build/bin/bitcoin-cli -datadir=demo/live/node1 -rpcwallet=wallet_node1 getbalance
+build/bin/bitcoin-cli -datadir=demo/live/node2 -rpcwallet=wallet_node2 getbalance
+```
+
+### Docs, license, development
+
+- Build and developer docs: [`doc/`](doc/)
+- License: [MIT](COPYING)
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+
+---
+
+## Español
+
+### ¿Qué es BitcoinAll?
+
+BitcoinAll Core es un nodo completo P2P derivado de Bitcoin Core. En el diseño actual, **los nodos son compatibles de validación** (sincronizan y verifican la cadena) y **no minan con Prueba de Trabajo**, en un rol parecido al de un full node de Ethereum: validan bloques y transacciones, mantienen el consenso y retransmiten datos.
+
+La producción de bloques usa un modelo de **proposer designado**: cada cabecera debe llevar una firma válida de la clave pública del proposer configurado, en lugar de un puzzle PoW.
+
+### Cambios recientes
+
+- **Sin minado PoW en los nodos** — los peers validan y sincronizan; no son mineros.
+- **Consenso por firma del proposer** — `CheckBlockHeader` verifica la firma del proposer designado (`bad-blk-sig` si es inválida). El genesis puede ir sin firma.
+- **RPCs de minería deshabilitados** — no estánan `getblocktemplate`, `submitblock` ni `submitheader`. `generate*` solo en **regtest**.
+- **`getmininginfo`** indica `mining: false`, `proof: "designated-proposer"` y la pubkey del proposer.
+- **Sync de headers corregido** — el hash de identidad del bloque excluye la firma; `CBlockIndex` guarda `vchBlockSignature` para retransmitir headers de forma continua.
+- **Explorador en vivo** — en [`demo/explorer/`](demo/explorer/) puedes ver bloques, minar y el reparto de premios entre nodos de demo.
+
+### Clave del proposer en regtest (demo)
+
+| Campo | Valor |
+|-------|-------|
+| PubKey | `0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798` |
+| PrivKey WIF (regtest) | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
+| PrivKey hex | `0000000000000000000000000000000000000000000000000000000000000001` |
+| Dirección demo (nodo 1) | `rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835` |
+| WIF recuperación nodo 1 | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
+| Dirección demo (nodo 2) | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
+| WIF recuperación nodo 2 | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87K7XCyj5v` |
+
+> Estas claves son **solo para regtest / demos locales**. No las uses en redes públicas con valor real.
+>
+> Credenciales y **claves de recuperación de las address** están en [`demo/credentials.env`](demo/credentials.env), [`demo/credentials.json`](demo/credentials.json) y [`demo/wallets.md`](demo/wallets.md).
+
+En regtest, `generatetoaddress` firma automáticamente con la clave embebida del proposer:
+
+```bash
+bitcoin-cli -datadir=/tmp/btca-node1 \
+  generatetoaddress 101 rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835
+```
+
+### Lanzar dos nodos (regtest)
+
+Compilación (ejemplo; la wallet puede ir desactivada según tu árbol):
+
+```bash
+cmake -B build -DENABLE_WALLET=OFF
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+```
+
+Configs de ejemplo (opciones de red bajo `[regtest]`):
+
+**Nodo 1** (`/tmp/btca-node1/bitcoin.conf`):
+
+```ini
+regtest=1
+server=1
+rpcuser=btca
+rpcpassword=btca-demo
+discover=0
+listenonion=0
+dnsseed=0
+fixedseeds=0
+
+[regtest]
+port=19444
+bind=127.0.0.1
+rpcport=18443
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+```
+
+**Nodo 2** (`/tmp/btca-node2/bitcoin.conf`):
+
+```ini
+regtest=1
+server=1
+rpcuser=btca
+rpcpassword=btca-demo
+discover=0
+listenonion=0
+dnsseed=0
+fixedseeds=0
+
+[regtest]
+port=19455
+bind=127.0.0.1
+rpcport=18453
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+addnode=127.0.0.1:19444
+```
+
+```bash
+./build/bin/bitcoind -datadir=/tmp/btca-node1 &
+./build/bin/bitcoind -datadir=/tmp/btca-node2 &
+./build/bin/bitcoin-cli -datadir=/tmp/btca-node1 getblockchaininfo
+./build/bin/bitcoin-cli -datadir=/tmp/btca-node2 getpeerinfo
+```
+
+### Explorador de bloques
+
+Con ambos nodos en marcha:
+
+```bash
+cd demo/explorer
+./run.sh
+# Chrome → http://127.0.0.1:8080
+```
+
+Descarga: [`demo/explorer`](demo/explorer/). Instrucciones en [`demo/explorer/README.md`](demo/explorer/README.md).
+
+### Modo LIVE (cadena main)
+
+Red **main/live** local con wallets y BTCA gastables:
+
+```bash
+cmake -B build -DENABLE_WALLET=ON
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+demo/live/start-live.sh
+demo/live/setup-wallets.sh
+```
+
+Credenciales (RPC, WIF, descriptores con xprv): [`demo/live/`](demo/live/) (`credentials.env`, `credentials.json`, `wallets.md`).
+
+```bash
+build/bin/bitcoin-cli -datadir=demo/live/node1 -rpcwallet=wallet_node1 getbalance
+build/bin/bitcoin-cli -datadir=demo/live/node2 -rpcwallet=wallet_node2 getbalance
+```
+
+### Docs, licencia y desarrollo
+
+- Documentación: [`doc/`](doc/)
+- Licencia: [MIT](COPYING)
+- Contribuciones: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+
+---
+
+## 中文
+
+### BitcoinAll 是什么？
+
+BitcoinAll Core 是基于 Bitcoin Core 的完整点对点节点。在当前设计中，**节点以验证兼容方式运行**（同步并验证链），**不再通过工作量证明（PoW）挖矿**，角色类似以太坊全节点：验证区块与交易、维护共识并转发数据。
+
+出块采用 **指定提议者（designated proposer）** 模型：每个区块头必须带有已配置提议者公钥的有效签名，而不再依赖 PoW 哈希谜题。
+
+### 近期变更
+
+- **节点不再 PoW 挖矿** — 对等节点负责验证与同步，不是矿工。
+- **提议者签名共识** — `CheckBlockHeader` 校验指定提议者签名（无效则为 `bad-blk-sig`）。创世块可以无签名。
+- **挖矿 RPC 已禁用** — 不可用 `getblocktemplate`、`submitblock`、`submitheader`。`generate*` 仅在 **regtest** 可用。
+- **`getmininginfo`** 返回 `mining: false`、`proof: "designated-proposer"` 以及提议者公钥。
+- **区块头同步修复** — 区块身份哈希不包含签名；`CBlockIndex` 持久化 `vchBlockSignature`，以便连续转发 headers。
+- **实时区块浏览器** — 见 [`demo/explorer/`](demo/explorer/)，可查看区块、实时出块以及演示节点间的奖励分配。
+
+### Regtest 提议者密钥（演示）
+
+| 字段 | 值 |
+|------|----|
+| 公钥 PubKey | `0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798` |
+| 私钥 WIF（regtest） | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
+| 私钥十六进制 | `0000000000000000000000000000000000000000000000000000000000000001` |
+| 演示地址（节点 1） | `rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835` |
+| 节点 1 恢复 WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
+| 演示地址（节点 2） | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
+| 节点 2 恢复 WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87K7XCyj5v` |
+
+> 这些密钥**仅用于 regtest / 本地演示**。请勿在任何有真实价值的公网中使用。
+>
+> 全部凭证与**地址恢复私钥**见 [`demo/credentials.env`](demo/credentials.env)、[`demo/credentials.json`](demo/credentials.json) 与 [`demo/wallets.md`](demo/wallets.md)。
+
+在 regtest 上，`generatetoaddress` 会使用内嵌提议者密钥自动签名：
+
+```bash
+bitcoin-cli -datadir=/tmp/btca-node1 \
+  generatetoaddress 101 rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835
+```
+
+### 运行两个节点（regtest）
+
+编译示例（视代码树情况可关闭钱包）：
+
+```bash
+cmake -B build -DENABLE_WALLET=OFF
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+```
+
+配置示例（网络相关选项放在 `[regtest]` 下）：
+
+**节点 1**（`/tmp/btca-node1/bitcoin.conf`）：
+
+```ini
+regtest=1
+server=1
+rpcuser=btca
+rpcpassword=btca-demo
+discover=0
+listenonion=0
+dnsseed=0
+fixedseeds=0
+
+[regtest]
+port=19444
+bind=127.0.0.1
+rpcport=18443
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+```
+
+**节点 2**（`/tmp/btca-node2/bitcoin.conf`）：
+
+```ini
+regtest=1
+server=1
+rpcuser=btca
+rpcpassword=btca-demo
+discover=0
+listenonion=0
+dnsseed=0
+fixedseeds=0
+
+[regtest]
+port=19455
+bind=127.0.0.1
+rpcport=18453
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+addnode=127.0.0.1:19444
+```
+
+```bash
+./build/bin/bitcoind -datadir=/tmp/btca-node1 &
+./build/bin/bitcoind -datadir=/tmp/btca-node2 &
+./build/bin/bitcoin-cli -datadir=/tmp/btca-node1 getblockchaininfo
+./build/bin/bitcoin-cli -datadir=/tmp/btca-node2 getpeerinfo
+```
+
+### 区块浏览器
+
+两个节点运行后：
+
+```bash
+cd demo/explorer
+./run.sh
+# Chrome → http://127.0.0.1:8080
+```
+
+下载目录：[`demo/explorer`](demo/explorer/)。说明见 [`demo/explorer/README.md`](demo/explorer/README.md)。
+
+### LIVE 模式（main 链）
+
+本地 **main/live** 网络，带钱包与可花费 BTCA：
+
+```bash
+cmake -B build -DENABLE_WALLET=ON
+cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli
+demo/live/start-live.sh
+demo/live/setup-wallets.sh
+```
+
+访问凭证（RPC、WIF、含 xprv 的描述符导出）：[`demo/live/`](demo/live/)。
+
+```bash
+build/bin/bitcoin-cli -datadir=demo/live/node1 -rpcwallet=wallet_node1 getbalance
+build/bin/bitcoin-cli -datadir=demo/live/node2 -rpcwallet=wallet_node2 getbalance
+```
+
+### 文档、许可证与开发
+
+- 文档：[`doc/`](doc/)
+- 许可证：[MIT](COPYING)
+- 贡献指南：[`CONTRIBUTING.md`](CONTRIBUTING.md)

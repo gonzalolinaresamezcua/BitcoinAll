@@ -336,9 +336,17 @@ public:
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() = default;
 
-    // BTCA: Methods for connection time tracking - must be implemented by derived classes
-    virtual bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const = 0;
-    virtual bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const = 0;
+    // BTCA: Methods for connection time tracking (optional; default to unsupported).
+    virtual bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const
+    {
+        nUptime = 0;
+        return false;
+    }
+    virtual bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const
+    {
+        nLastRewardedUptime = 0;
+        return false;
+    }
 
     //! Estimate database size (0 if not implemented)
     virtual size_t EstimateSize() const { return 0; }
@@ -495,10 +503,6 @@ public:
     //! Run an internal sanity check on the cache data structure. */
     void SanityCheck() const;
 
-    // BTCA: Add overrides for new CCoinsView virtual methods, following the existing pattern for error catching.
-    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
-    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
-
 private:
     /**
      * @note this is marked const, but may actually append to `cacheCoins`, increasing
@@ -542,6 +546,10 @@ public:
 
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
+
+    // BTCA: Propagate uptime lookups through the error-catching view.
+    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
+    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
 
 private:
     /** A list of callbacks to execute upon leveldb read error. */

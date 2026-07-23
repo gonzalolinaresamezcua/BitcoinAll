@@ -58,12 +58,48 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
         pblock->nTime = nNewTime;
     }
 
-    // Updating time can change work required on testnet:
-    if (consensusParams.fPowAllowMinDifficultyBlocks) {
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
-    }
+    // BTCA: nBits is a constant non-PoW header field; always refresh from consensus helper.
+    pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
 
     return nNewTime - nOldTime;
+}
+
+namespace {
+/** Demo designated proposer private key (integer 1). Used only with -btcaallowgenerate / regtest. */
+constexpr unsigned char EMBEDDED_PROPOSER_KEY[32] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+} // namespace
+
+bool AllowLocalBlockGeneration(const CChainParams& params)
+{
+    return params.MineBlocksOnDemand() || gArgs.GetBoolArg("-btcaallowgenerate", false);
+}
+
+bool SignBlockWithDesignatedProposer(CBlockHeader& block, const Consensus::Params& consensusParams, bool allow_embedded_key)
+{
+    block.vchBlockSignature.clear();
+
+    if (consensusParams.designatedBlockProposerKeyID.IsNull()) {
+        return false;
+    }
+    if (!allow_embedded_key) {
+        // Production / validation-only nodes do not carry proposer private keys.
+        return false;
+    }
+
+    CKey privKey;
+    privKey.Set(EMBEDDED_PROPOSER_KEY, EMBEDDED_PROPOSER_KEY + sizeof(EMBEDDED_PROPOSER_KEY), /*fCompressedIn=*/true);
+    if (!privKey.IsValid()) {
+        throw std::runtime_error(strprintf("%s: Failed to load embedded designated proposer key.", __func__));
+    }
+    if (privKey.GetPubKey().GetID() != consensusParams.designatedBlockProposerKeyID) {
+        throw std::runtime_error(strprintf("%s: Embedded key does not match designatedBlockProposerKeyID.", __func__));
+    }
+    if (!privKey.Sign(block.GetHashForSignature(), block.vchBlockSignature)) {
+        throw std::runtime_error(strprintf("%s: Failed to sign block header.", __func__));
+    }
+    return true;
 }
 
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman)
@@ -181,38 +217,19 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
     pblock->nNonce         = 0;
-    pblock->vchBlockSignature.clear(); // Clear any previous signature
 
     // Calculate Merkle Root before signing, as it's part of the signed hash
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 
-    // BTCA: Sign the block if a designated proposer is configured
+    // BTCA: Sign only when local block generation is allowed (regtest or -btcaallowgenerate).
+    // Validation-only production nodes never embed proposer keys.
     const Consensus::Params& consensusParams = chainparams.GetConsensus();
-    if (!consensusParams.designatedBlockProposerKeyID.IsNull()) {
-        // For regtest, we'll use the hardcoded private key.
-        // IMPORTANT: This is for regtest/testing ONLY. Real applications need secure key management.
-        std::string strSecret = "cQStringQuSodyN8yL3v9S4qY1gB9dZsqFD27DbSCp2f1q4A2d8gX"; // Regtest WIF
-        CKey privKey = DecodeSecret(strSecret);
-        if (!privKey.IsValid()) {
-            throw std::runtime_error(strprintf("%s: Failed to decode private key for block signing.", __func__));
-        }
-
-        // Ensure the derived public key matches the one in chainparams (optional sanity check)
-        CPubKey pubKey = privKey.GetPubKey();
-        if (pubKey.GetID() != consensusParams.designatedBlockProposerKeyID) {
-             throw std::runtime_error(strprintf("%s: Private key does not correspond to designatedBlockProposerKeyID.", __func__));
-        }
-        
-        uint256 hashToSign = pblock->GetHashForSignature();
-        if (!privKey.Sign(hashToSign, pblock->vchBlockSignature)) {
-            throw std::runtime_error(strprintf("%s: Failed to sign block header.", __func__));
-        }
-    }
-    // BTCA: End of block signing
+    const bool allow_local_generation{AllowLocalBlockGeneration(chainparams)};
+    SignBlockWithDesignatedProposer(*pblock, consensusParams, /*allow_embedded_key=*/allow_local_generation);
 
     BlockValidationState state;
     if (m_options.test_block_validity && !TestBlockValidity(state, chainparams, m_chainstate, *pblock, pindexPrev,
-                                                            /*fCheckPOW=*/false, /*fCheckMerkleRoot=*/true)) {
+                                                            /*fCheckPOW=*/allow_local_generation, /*fCheckMerkleRoot=*/true)) {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, state.ToString()));
     }
     const auto time_2{SteadyClock::now()};
@@ -501,7 +518,8 @@ std::unique_ptr<CBlockTemplate> WaitAndCreateNewBlock(ChainstateManager& chainma
     auto now{NodeClock::now()};
     const auto deadline = now + options.timeout;
     const MillisecondsDouble tick{1000};
-    const bool allow_min_difficulty{chainman.GetParams().GetConsensus().fPowAllowMinDifficultyBlocks};
+    // BTCA: PoW min-difficulty shortcuts are disabled; nodes do not mine.
+    const bool allow_min_difficulty{false};
 
     do {
         bool tip_changed{false};

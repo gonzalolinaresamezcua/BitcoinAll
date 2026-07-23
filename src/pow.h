@@ -34,6 +34,12 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
 bool CheckProofOfWorkImpl(uint256 hash, unsigned int nBits, const Consensus::Params&);
 
 /**
+ * BTCA: Validate the designated proposer signature that replaces PoW.
+ * Genesis blocks (null prev hash) are always accepted without a signature.
+ */
+bool CheckBlockProposerSignature(const CBlockHeader& block, const Consensus::Params& params);
+
+/**
  * Return false if the proof-of-work requirement specified by new_nbits at a
  * given height is not possible, given the proof-of-work on the prior block as
  * specified by old_nbits.

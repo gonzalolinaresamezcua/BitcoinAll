@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BitcoinAll Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <div class="grid-glow" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="brand-block">
+        <p class="brand">BitcoinAll</p>
+        <h1>Explorador de bloques</h1>
+        <p class="lede">
+          Cadena regtest en vivo: validación entre nodos, generación firmada y reparto de premios.
+        </p>
+      </div>
+      <div class="live-pill" id="livePill">
+        <span class="pulse"></span>
+        <span id="liveLabel">Conectando…</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="nodes" id="nodes"></section>
+
+      <section class="panel mine-panel">
+        <div class="panel-head">
+          <h2>Generación de bloques</h2>
+          <p>El proposer firma el bloque; el premio coinbase va a la dirección del nodo elegido.</p>
+        </div>
+        <div class="mine-controls">
+          <label>
+            Premiar a
+            <select id="mineTarget">
+              <option value="rotate">Alternar Nodo 1 ↔ Nodo 2</option>
+              <option value="node1">Nodo 1 · Proposer</option>
+              <option value="node2">Nodo 2 · Validador</option>
+            </select>
+          </label>
+          <label>
+            Bloques
+            <input id="mineCount" type="number" min="1" max="20" value="1" />
+          </label>
+          <button id="mineBtn" class="btn primary" type="button">Minar ahora</button>
+          <button id="autoBtn" class="btn ghost" type="button">Auto-minado: OFF</button>
+        </div>
+        <p class="mine-status" id="mineStatus">Listo para generar el siguiente bloque.</p>
+      </section>
+
+      <section class="split">
+        <article class="panel rewards-panel">
+          <div class="panel-head">
+            <h2>Reparto de premios</h2>
+            <p>Acumulado de recompensas coinbase por nodo receptor.</p>
+          </div>
+          <div class="reward-total" id="rewardTotal">0 BTCA</div>
+          <div class="reward-bars" id="rewardBars"></div>
+          <div class="reward-table-wrap">
+            <table class="reward-table">
+              <thead>
+                <tr>
+                  <th>Nodo</th>
+                  <th>Bloques</th>
+                  <th>Premio</th>
+                  <th>Cuota</th>
+                </tr>
+              </thead>
+              <tbody id="rewardRows"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel feed-panel">
+          <div class="panel-head">
+            <h2>Actividad en vivo</h2>
+            <p>Últimos eventos de minado y sincronización.</p>
+          </div>
+          <ol class="feed" id="feed"></ol>
+        </article>
+      </section>
+
+      <section class="panel blocks-panel">
+        <div class="panel-head">
+          <h2>Bloques recientes</h2>
+          <p>Hash, altura, transacciones y destino del premio.</p>
+        </div>
+        <div class="blocks" id="blocks"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>BitcoinAll · nodo compatible sin PoW</span>
+      <span id="tipMeta">—</span>
+    </footer>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

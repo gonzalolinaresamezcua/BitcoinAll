@@ -8,6 +8,7 @@
 #include <arith_uint256.h>
 #include <chain.h>
 #include <primitives/block.h>
+#include <pubkey.h>
 #include <uint256.h>
 #include <util/check.h>
 
@@ -61,4 +62,23 @@ bool CheckProofOfWorkImpl(uint256 hash, unsigned int nBits, const Consensus::Par
     // PoW no se usa, siempre retorna true.
     // Los parámetros hash, nBits y params.powLimit ya no se usan aquí.
     return true;
+}
+
+bool CheckBlockProposerSignature(const CBlockHeader& block, const Consensus::Params& params)
+{
+    // Genesis has no proposer signature requirement.
+    if (block.hashPrevBlock.IsNull()) {
+        return true;
+    }
+
+    if (!params.designatedBlockProposerPubKey.IsValid()) {
+        // Fail closed: without a configured proposer, non-genesis blocks are invalid.
+        return false;
+    }
+
+    if (block.vchBlockSignature.empty()) {
+        return false;
+    }
+
+    return params.designatedBlockProposerPubKey.Verify(block.GetHashForSignature(), block.vchBlockSignature);
 }

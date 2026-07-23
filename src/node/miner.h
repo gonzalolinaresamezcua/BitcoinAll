@@ -229,6 +229,18 @@ int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const int64_t difficulty_a
 
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 
+/**
+ * BTCA: true when local generate* helpers may run (regtest, or -btcaallowgenerate on live).
+ */
+bool AllowLocalBlockGeneration(const CChainParams& params);
+
+/**
+ * BTCA: Sign a block header with the designated proposer key.
+ * The embedded demo private key is used only when allow_embedded_key is true.
+ * Validation-only nodes never embed proposer keys.
+ */
+bool SignBlockWithDesignatedProposer(CBlockHeader& block, const Consensus::Params& consensusParams, bool allow_embedded_key);
+
 /** Update an old GenerateCoinbaseCommitment from CreateNewBlock after the block txs have changed */
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 

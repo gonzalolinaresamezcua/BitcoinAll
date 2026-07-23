@@ -110,21 +110,35 @@ struct Params {
      * This prevents us from warning about the CSV and segwit activations. */
     int MinBIP9WarningHeight;
     std::array<BIP9Deployment,MAX_VERSION_BITS_DEPLOYMENTS> vDeployments;
-    /** Proof of work related parameters are modified for BTCA.
-     *  powLimit is kept to define a constant nBits for blocks (though not used for PoW validation).
-     *  nPowTargetSpacing is kept as it might be useful for the new consensus mechanism (e.g. target block time).
+    /**
+     * BTCA: PoW mining is disabled. Nodes are validation/sync compatible only
+     * (Ethereum-style full nodes): they verify designated-proposer signatures
+     * instead of proof-of-work.
+     *
+     * powLimit / nBits remain as a constant header field for serialization compatibility.
+     * nPowTargetSpacing is the target block interval for the non-PoW consensus.
      */
     uint256 powLimit;
+    int64_t nPowTargetTimespan{14 * 24 * 60 * 60};
     int64_t nPowTargetSpacing;
+    bool fPowAllowMinDifficultyBlocks{false};
+    bool fPowNoRetargeting{true};
+    /** BIP94 timewarp rule; unused while PoW retargeting is disabled. */
+    bool enforce_BIP94{false};
 
-    // BTCA: Designated block proposer for non-PoW consensus (e.g., for regtest)
+    // BTCA: Designated block proposer for non-PoW consensus
     CKeyID designatedBlockProposerKeyID; // KeyID of the designated proposer
     CPubKey designatedBlockProposerPubKey; // Public key of the designated proposer (for signature verification)
-    // BTCA: End of designated block proposer fields
 
     std::chrono::seconds PowTargetSpacing() const
     {
         return std::chrono::seconds{nPowTargetSpacing};
+    }
+
+    int64_t DifficultyAdjustmentInterval() const
+    {
+        // Kept for BIP9/time helpers; PoW retargeting itself is disabled.
+        return nPowTargetTimespan / nPowTargetSpacing;
     }
     
     /** The best chain should have at least this much work */

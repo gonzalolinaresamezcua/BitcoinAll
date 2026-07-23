@@ -1,0 +1,106 @@
+{
+  "wallet_name": "wallet_node1",
+  "descriptors": [
+    {
+      "desc": "pkh(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/44h/0h/0h/0/*)#xafe82c9",
+      "timestamp": 1,
+      "active": true,
+      "internal": false,
+      "range": [
+        0,
+        999
+      ],
+      "next": 0,
+      "next_index": 0
+    },
+    {
+      "desc": "pkh(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/44h/0h/0h/1/*)#hfvc6lga",
+      "timestamp": 1,
+      "active": true,
+      "internal": true,
+      "range": [
+        0,
+        999
+      ],
+      "next": 0,
+      "next_index": 0
+    },
+    {
+      "desc": "sh(wpkh(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/49h/0h/0h/0/*))#q4y4htvq",
+      "timestamp": 1,
+      "active": true,
+      "internal": false,
+      "range": [
+        0,
+        999
+      ],
+      "next": 0,
+      "next_index": 0
+    },
+    {
+      "desc": "sh(wpkh(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/49h/0h/0h/1/*))#xkvsvx85",
+      "timestamp": 1,
+      "active": true,
+      "internal": true,
+      "range": [
+        0,
+        999
+      ],
+      "next": 0,
+      "next_index": 0
+    },
+    {
+      "desc": "tr(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/86h/0h/0h/0/*)#g9us82p2",
+      "timestamp": 1,
+      "active": true,
+      "internal": false,
+      "range": [
+        0,
+        999
+      ],
+      "next": 0,
+      "next_index": 0
+    },
+    {
+      "desc": "tr(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/86h/0h/0h/1/*)#e3e36l3j",
+      "timestamp": 1,
+      "active": true,
+      "internal": true,
+      "range": [
+        0,
+        999
+      ],
+      "next": 0,
+      "next_index": 0
+    },
+    {
+      "desc": "wpkh(KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn)#gul0776m",
+      "timestamp": 1,
+      "active": false
+    },
+    {
+      "desc": "wpkh(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/84h/0h/0h/0/*)#p364euq0",
+      "timestamp": 1,
+      "active": true,
+      "internal": false,
+      "range": [
+        0,
+        1000
+      ],
+      "next": 1,
+      "next_index": 1
+    },
+    {
+      "desc": "wpkh(NG9yiTArzt8Rjhq3dJ6X292z9x4rtiD7ydYPgTJkoL3gWnjjfAsmhSb3PfCZVbkhWNAs7mbmwzGr52qNzVv3kbNruWvihh8SCA2gmhzZ7PFiXnN/84h/0h/0h/1/*)#s9l5yfsh",
+      "timestamp": 1,
+      "active": true,
+      "internal": true,
+      "range": [
+        0,
+        1001
+      ],
+      "next": 2,
+      "next_index": 2
+    }
+  ]
+}

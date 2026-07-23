@@ -19,7 +19,7 @@
 #include <pubkey.h>
 #include <streams.h>
 #include <util/strencodings.h>
-#include <keyaddress.h>     // For PKHash
+#include <addresstype.h>   // For PKHash
 #include <policy/policy.h> // For GetScriptForDestination
 #include <chainparams.h>   // For COIN and potentially BTCA specific constants
 
@@ -206,18 +206,19 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     CKeyID node_key_id_from_op_return;
     uint32_t session_uptime_from_op_return = 0;
 
-    if (!tx.vout.empty() && tx.vout[0].scriptPubKey.IsOpReturn()) {
+    if (!tx.vout.empty() && tx.vout[0].scriptPubKey.IsUnspendable()) {
         const CScript& script = tx.vout[0].scriptPubKey;
         std::vector<unsigned char> data_op_return_payload;
         opcodetype opcode;
         CScript::const_iterator pc = script.begin();
         if (script.GetOp(pc, opcode) && opcode == OP_RETURN) {
             if (script.GetOp(pc, opcode, data_op_return_payload) && pc == script.end()) {
-                CDataStream ss(data_op_return_payload, SER_NETWORK, PROTOCOL_VERSION);
-                std::string expected_marker = "BTCA_TIME";
-                std::string marker_str(expected_marker.size(), '\\0');
+                DataStream ss{data_op_return_payload};
+                const std::string expected_marker = "BTCA_TIME";
                 if (ss.size() >= expected_marker.size()) {
-                    ss.read(marker_str.data(), expected_marker.size());
+                    std::vector<std::byte> marker_bytes(expected_marker.size());
+                    ss.read(marker_bytes);
+                    const std::string marker_str(reinterpret_cast<const char*>(marker_bytes.data()), marker_bytes.size());
                     if (marker_str == expected_marker) {
                         // This is a BTCA_TIME transaction. Check if it has a reward.
                         // Basic structure validation (version, pubkey, extra data) is done in CheckTransaction.
@@ -229,7 +230,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                                 CPubKey pubkey_dummy;  // Already checked in CheckTransaction
                                 ss >> version_dummy; // Skip version
                                 std::vector<unsigned char> pubkey_data(CPubKey::COMPRESSED_SIZE);
-                                ss.read(pubkey_data.data(), pubkey_data.size());
+                                ss.read(std::as_writable_bytes(std::span{pubkey_data}));
                                 pubkey_dummy.Set(pubkey_data.begin(), pubkey_data.end());
                                 node_key_id_from_op_return = pubkey_dummy.GetID(); // Get KeyID
                                 ss >> session_uptime_from_op_return; // Get session uptime
