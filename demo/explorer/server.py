@@ -18,30 +18,35 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
 
+# Defaults = LIVE/main demo ports (8332/8333). Override with env or /api/config.
 NODE1 = {
     "id": "node1",
     "name": "Nodo 1 · Proposer",
     "role": "proposer",
-    "url": os.environ.get("BTCA_NODE1_RPC", "http://127.0.0.1:18443"),
-    "user": os.environ.get("BTCA_RPC_USER", "btca"),
-    "password": os.environ.get("BTCA_RPC_PASSWORD", "btca-demo"),
+    "url": os.environ.get("BTCA_NODE1_RPC", "http://127.0.0.1:8332"),
+    "user": os.environ.get("BTCA_RPC_USER", "btca-live"),
+    "password": os.environ.get("BTCA_RPC_PASSWORD", "BtcaLive-Demo-9333!"),
     "reward_address": os.environ.get(
-        "BTCA_NODE1_ADDR", "rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835"
+        "BTCA_NODE1_ADDR", "btca1qw508d6qejxtdg4y5r3zarvary0c5xw7kj7tmhx"
     ),
-    "wallet": os.environ.get("BTCA_NODE1_WALLET") or os.environ.get("BTCA_LIVE_NODE1_WALLET") or "",
+    "wallet": os.environ.get("BTCA_NODE1_WALLET")
+    or os.environ.get("BTCA_LIVE_NODE1_WALLET")
+    or "wallet_node1",
     "color": "#d97706",
 }
 NODE2 = {
     "id": "node2",
     "name": "Nodo 2 · Validador",
     "role": "validator",
-    "url": os.environ.get("BTCA_NODE2_RPC", "http://127.0.0.1:18453"),
-    "user": os.environ.get("BTCA_RPC_USER", "btca"),
-    "password": os.environ.get("BTCA_RPC_PASSWORD", "btca-demo"),
+    "url": os.environ.get("BTCA_NODE2_RPC", "http://127.0.0.1:8333"),
+    "user": os.environ.get("BTCA_RPC_USER", "btca-live"),
+    "password": os.environ.get("BTCA_RPC_PASSWORD", "BtcaLive-Demo-9333!"),
     "reward_address": os.environ.get(
-        "BTCA_NODE2_ADDR", "rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq"
+        "BTCA_NODE2_ADDR", "btca1qq6hag67dl53wl99vzg42z8eyzfz2xlkvcq6awj"
     ),
-    "wallet": os.environ.get("BTCA_NODE2_WALLET") or os.environ.get("BTCA_LIVE_NODE2_WALLET") or "",
+    "wallet": os.environ.get("BTCA_NODE2_WALLET")
+    or os.environ.get("BTCA_LIVE_NODE2_WALLET")
+    or "wallet_node2",
     "color": "#0d9488",
 }
 NODES = {n["id"]: n for n in (NODE1, NODE2)}
