@@ -35,11 +35,13 @@ Block production uses a **designated proposer** model: each block header must ca
 | PrivKey WIF (regtest) | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
 | PrivKey hex | `0000000000000000000000000000000000000000000000000000000000000001` |
 | Demo address (node 1) | `rbtca1qw508d6qejxtdg4y5r3zarvary0c5xw7k5c4835` |
+| Node 1 recovery WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA` |
 | Demo address (node 2) | `rbtca1qq6hag67dl53wl99vzg42z8eyzfz2xlkv7xypgq` |
+| Node 2 recovery WIF | `cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87K7XCyj5v` |
 
-> This key is for **regtest / local demos only**. Do not use it on any public network with real value.
+> These keys are for **regtest / local demos only**. Do not use them on any public network with real value.
 >
-> All demo credentials (RPC, ports, proposer key, reward addresses) are saved in [`demo/credentials.env`](demo/credentials.env) and [`demo/credentials.json`](demo/credentials.json).
+> All credentials and **address recovery keys** are in [`demo/credentials.env`](demo/credentials.env), [`demo/credentials.json`](demo/credentials.json), and [`demo/wallets.md`](demo/wallets.md).
 
 On regtest, `generatetoaddress` signs blocks automatically with the embedded proposer key:
 
