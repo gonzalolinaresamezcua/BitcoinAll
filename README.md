@@ -14,6 +14,13 @@ BitcoinAll Core connects to the Bitcoin peer-to-peer network to download and ful
 validate blocks and transactions. It also includes a wallet and graphical user
 interface, which can be optionally built.
 
+Consensus
+---------
+
+BitcoinAll uses **Proof of Uptime (PoU)** consensus. Instead of proof-of-work mining,
+participation and block rewards are tied to accumulated node connection uptime on the
+network. See `src/consensus/params.h` for the canonical consensus parameters.
+
 Further information about BitcoinAll Core is available in the [doc folder](/doc).
 
 License

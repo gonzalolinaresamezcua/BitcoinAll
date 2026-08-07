@@ -17,6 +17,12 @@
 
 #include "pubkey.h"
 
+/**
+ * BitcoinAll consensus: Proof of Uptime (PoU).
+ *
+ * BitcoinAll replaces proof-of-work with PoU: block production and rewards are
+ * based on accumulated node connection uptime rather than hash power.
+ */
 namespace Consensus {
 
 /**
