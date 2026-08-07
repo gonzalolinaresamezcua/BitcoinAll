@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitcoinAll Wallet</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">₿A</div>
+        <div>
+          <h1>BitcoinAll Wallet</h1>
+          <p id="node-status" class="subtitle">Conectando al nodo…</p>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat">
+          <span class="label">Bloques</span>
+          <span id="blocks" class="value">—</span>
+        </div>
+        <div class="stat">
+          <span class="label">Wallet</span>
+          <span id="wallet-name" class="value">—</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="balance-card">
+      <p class="label">Balance disponible</p>
+      <p class="balance"><span id="balance">0.00</span> <small>BTCA</small></p>
+      <p id="pending" class="pending"></p>
+      <div class="hero-address">
+        <span class="label">Tu dirección</span>
+        <div class="hero-address-row">
+          <code id="hero-address" title="Tu dirección principal">—</code>
+          <button type="button" id="copy-hero-address" class="btn secondary btn-sm" title="Copiar dirección">Copiar</button>
+        </div>
+      </div>
+      <div class="balance-actions">
+        <button class="btn primary" data-tab="send">Enviar</button>
+        <button class="btn secondary" data-tab="receive">Recibir</button>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="overview">Resumen</button>
+      <button class="tab" data-tab="send">Enviar</button>
+      <button class="tab" data-tab="receive">Recibir</button>
+      <button class="tab" data-tab="sign">Firmar</button>
+      <button class="tab" data-tab="backup">Backup</button>
+      <button class="tab" data-tab="history">Historial</button>
+    </nav>
+
+    <main>
+      <section id="panel-overview" class="panel active">
+        <h2>Estado del nodo</h2>
+        <dl class="info-grid" id="chain-info"></dl>
+      </section>
+
+      <section id="panel-send" class="panel">
+        <h2>Enviar BTCA</h2>
+        <form id="send-form" class="form">
+          <label>
+            Dirección destino
+            <input type="text" id="send-address" placeholder="btca1…" required autocomplete="off">
+          </label>
+          <label>
+            Cantidad (BTCA)
+            <input type="number" id="send-amount" step="0.00000001" min="0" placeholder="0.00" required>
+          </label>
+          <label>
+            Nota (opcional)
+            <input type="text" id="send-comment" placeholder="Pago, regalo, etc.">
+          </label>
+          <button type="submit" class="btn primary full">Firmar y enviar</button>
+        </form>
+        <pre id="send-result" class="result hidden"></pre>
+      </section>
+
+      <section id="panel-receive" class="panel">
+        <h2>Recibir BTCA</h2>
+        <p class="hint">Genera una dirección nueva o usa una existente.</p>
+        <div class="receive-box">
+          <input type="text" id="receive-address" readonly>
+          <button type="button" id="copy-address" class="btn secondary">Copiar</button>
+          <button type="button" id="new-address" class="btn primary">Nueva dirección</button>
+        </div>
+        <h3>Direcciones usadas</h3>
+        <ul id="address-list" class="address-list"></ul>
+      </section>
+
+      <section id="panel-sign" class="panel">
+        <h2>Firmar mensaje</h2>
+        <form id="sign-form" class="form">
+          <label>
+            Dirección tuya
+            <input type="text" id="sign-address" placeholder="btca1…" required>
+          </label>
+          <label>
+            Mensaje
+            <textarea id="sign-message" rows="4" required placeholder="Texto a firmar con tu clave privada"></textarea>
+          </label>
+          <button type="submit" class="btn primary full">Firmar</button>
+        </form>
+        <label class="mt">
+          Firma resultante
+          <textarea id="sign-output" rows="3" readonly placeholder="Aparecerá aquí"></textarea>
+        </label>
+
+        <hr>
+        <h2>Verificar firma</h2>
+        <form id="verify-form" class="form">
+          <label>
+            Dirección
+            <input type="text" id="verify-address" required>
+          </label>
+          <label>
+            Mensaje
+            <textarea id="verify-message" rows="3" required></textarea>
+          </label>
+          <label>
+            Firma
+            <textarea id="verify-signature" rows="3" required></textarea>
+          </label>
+          <button type="submit" class="btn secondary full">Verificar</button>
+        </form>
+        <p id="verify-result" class="verify-result"></p>
+      </section>
+
+      <section id="panel-backup" class="panel">
+        <div class="warn-box">
+          <strong>⚠ Seguridad</strong>
+          <p>La clave privada da control total sobre tus BTCA. Guárdala offline (papel, USB cifrado). No la subas a internet ni la compartas.</p>
+        </div>
+
+        <h2>Clave maestra (xprv)</h2>
+        <p class="hint">Respaldo principal. Con esta clave recuperas toda la wallet.</p>
+        <label class="confirm-row">
+          <input type="checkbox" id="backup-confirm-master">
+          Entiendo el riesgo y quiero ver mi clave privada maestra
+        </label>
+        <button type="button" id="export-master" class="btn primary full">Mostrar clave maestra</button>
+        <textarea id="master-key-output" class="secret-output" rows="4" readonly placeholder="La xprv aparecerá aquí"></textarea>
+        <div class="row-actions">
+          <button type="button" id="copy-master" class="btn secondary">Copiar xprv</button>
+        </div>
+
+        <hr>
+
+        <h2>Respaldo por dirección</h2>
+        <form id="backup-address-form" class="form">
+          <label>
+            Dirección
+            <input type="text" id="backup-address" placeholder="btca1…">
+          </label>
+          <label class="confirm-row">
+            <input type="checkbox" id="backup-confirm-address">
+            Confirmo que guardaré esta información de forma segura
+          </label>
+          <button type="submit" class="btn secondary full">Exportar info de dirección</button>
+        </form>
+        <textarea id="address-key-output" class="secret-output" rows="8" readonly placeholder="Ruta HD, pubkey y descriptor"></textarea>
+        <button type="button" id="copy-address-backup" class="btn secondary">Copiar</button>
+
+        <hr>
+
+        <h2>Respaldo completo (JSON)</h2>
+        <p class="hint">Incluye xprv maestra + todos los descriptores con claves privadas.</p>
+        <label class="confirm-row">
+          <input type="checkbox" id="backup-confirm-full">
+          Quiero descargar el respaldo completo
+        </label>
+        <button type="button" id="export-full" class="btn primary full">Descargar backup.json</button>
+      </section>
+
+      <section id="panel-history" class="panel">
+        <h2>Transacciones</h2>
+        <button type="button" id="refresh-txs" class="btn secondary">Actualizar</button>
+        <div id="tx-list" class="tx-list"></div>
+      </section>
+    </main>
+
+    <footer>
+      Solo localhost · Las claves solo se muestran cuando las exportas tú
+    </footer>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

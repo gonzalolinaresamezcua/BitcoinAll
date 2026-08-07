@@ -8,7 +8,9 @@
 !/build-aux
 !/build_msvc
 
-*.pyc
+/wallet-app/.venv/
+/explorer-app/.venv/
+/data/
 
 # Only ignore unexpected patches
 *.patch

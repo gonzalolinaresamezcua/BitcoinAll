@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <common/signmessage.h>
+#include <addresstype.h>
 #include <hash.h>
 #include <key.h>
 #include <key_io.h>
@@ -33,7 +34,9 @@ MessageVerificationResult MessageVerify(
         return MessageVerificationResult::ERR_INVALID_ADDRESS;
     }
 
-    if (std::get_if<PKHash>(&destination) == nullptr) {
+    const PKHash* pkhash = std::get_if<PKHash>(&destination);
+    const WitnessV0KeyHash* wpkhash = std::get_if<WitnessV0KeyHash>(&destination);
+    if (!pkhash && !wpkhash) {
         return MessageVerificationResult::ERR_ADDRESS_NO_KEY;
     }
 
@@ -47,8 +50,14 @@ MessageVerificationResult MessageVerify(
         return MessageVerificationResult::ERR_PUBKEY_NOT_RECOVERED;
     }
 
-    if (!(PKHash(pubkey) == *std::get_if<PKHash>(&destination))) {
-        return MessageVerificationResult::ERR_NOT_SIGNED;
+    if (pkhash) {
+        if (PKHash(pubkey) != *pkhash) {
+            return MessageVerificationResult::ERR_NOT_SIGNED;
+        }
+    } else {
+        if (WitnessV0KeyHash(pubkey) != *wpkhash) {
+            return MessageVerificationResult::ERR_NOT_SIGNED;
+        }
     }
 
     return MessageVerificationResult::OK;

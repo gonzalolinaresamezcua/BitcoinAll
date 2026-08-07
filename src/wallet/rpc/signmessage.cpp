@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <common/signmessage.h>
+#include <addresstype.h>
 #include <key_io.h>
 #include <rpc/util.h>
 #include <wallet/rpc/util.h>
@@ -50,13 +51,17 @@ RPCHelpMan signmessage()
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
             }
 
-            const PKHash* pkhash = std::get_if<PKHash>(&dest);
-            if (!pkhash) {
+            PKHash pkhash;
+            if (const PKHash* legacy = std::get_if<PKHash>(&dest)) {
+                pkhash = *legacy;
+            } else if (const WitnessV0KeyHash* witness = std::get_if<WitnessV0KeyHash>(&dest)) {
+                pkhash = PKHash(static_cast<uint160>(*witness));
+            } else {
                 throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
             }
 
             std::string signature;
-            SigningResult err = pwallet->SignMessage(strMessage, *pkhash, signature);
+            SigningResult err = pwallet->SignMessage(strMessage, pkhash, signature);
             if (err == SigningResult::SIGNING_FAILED) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, SigningResultString(err));
             } else if (err != SigningResult::OK) {

@@ -1,0 +1,6 @@
+# Copia a data/bitcoin.conf al arrancar el nodo por primera vez:
+#   mkdir -p data && cp bitcoin.conf.example data/bitcoin.conf
+
+server=1
+txindex=1
+wallet=primera
