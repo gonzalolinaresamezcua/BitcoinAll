@@ -1,42 +1,40 @@
-Bitcoin Core
-=============
+BitcoinAll Core
+===============
+
+Documentación del nodo, wallet y herramientas de BitcoinAll (BTCA · Proof of Uptime).
+
+Repositorio oficial: https://github.com/gonzalolinaresamezcua/BitcoinAll
 
 Setup
 ---------------------
-Bitcoin Core is the original Bitcoin client and it builds the backbone of the network. It downloads and, by default, stores the entire history of Bitcoin transactions, which requires several hundred gigabytes or more of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to several days or more.
+BitcoinAll Core se conecta a la red P2P de BitcoinAll, valida bloques y transacciones, e incluye wallet. La GUI (`bitcoin-qt`) es opcional al compilar.
 
-To download Bitcoin Core, visit [bitcoincore.org](https://bitcoincore.org/en/download/).
+Para obtener el software:
+
+- **Compilar:** [doc/build-unix.md](build-unix.md) (Linux), [build-osx.md](build-osx.md), [build-windows-msvc.md](build-windows-msvc.md)
+- **Releases:** https://github.com/gonzalolinaresamezcua/BitcoinAll/releases
 
 Running
 ---------------------
-The following are some helpful notes on how to run Bitcoin Core on your native platform.
+Tras compilar, los binarios están en `build/bin/`:
 
-### Unix
+- `bin/bitcoin-qt` (GUI) o
+- `bin/bitcoind` (nodo en segundo plano)
+- `bin/bitcoin-cli` (RPC)
 
-Unpack the files into a directory and run:
+Apps web locales (opcional):
 
-- `bin/bitcoin-qt` (GUI) or
-- `bin/bitcoind` (headless)
-
-### Windows
-
-Unpack the files into a directory, and then run bitcoin-qt.exe.
-
-### macOS
-
-Drag Bitcoin Core to your applications folder, and then run Bitcoin Core.
+- Wallet: `wallet-app/run.sh start` → http://127.0.0.1:9335
+- Explorer: `explorer-app/run.sh start` → http://127.0.0.1:9336
 
 ### Need Help?
 
-* See the documentation at the [Bitcoin Wiki](https://en.bitcoin.it/wiki/Main_Page)
-for help and more information.
-* Ask for help on [Bitcoin StackExchange](https://bitcoin.stackexchange.com).
-* Ask for help on #bitcoin on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoin).
-* Ask for help on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Technical Support board](https://bitcointalk.org/index.php?board=4.0).
+* Abre un [issue en GitHub](https://github.com/gonzalolinaresamezcua/BitcoinAll/issues).
+* Consulta [CONTRIBUTING.md](../CONTRIBUTING.md) para contribuir.
 
 Building
 ---------------------
-The following are developer notes on how to build Bitcoin Core on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
+Notas de compilación por plataforma:
 
 - [Dependencies](dependencies.md)
 - [macOS Build Notes](build-osx.md)
@@ -48,24 +46,22 @@ The following are developer notes on how to build Bitcoin Core on your native pl
 
 Development
 ---------------------
-The Bitcoin repo's [root README](/README.md) contains relevant information on the development process and automated testing.
+El [README principal](../README.md) describe el proyecto, consenso PoU y el flujo de desarrollo.
 
 - [Developer Notes](developer-notes.md)
 - [Productivity Notes](productivity.md)
 - [Release Process](release-process.md)
-- [Source Code Documentation (External Link)](https://doxygen.bitcoincore.org/)
 - [Translation Process](translation_process.md)
 - [Translation Strings Policy](translation_strings_policy.md)
 - [JSON-RPC Interface](JSON-RPC-interface.md)
-- [Unauthenticated REST Interface](REST-interface.md)
+- [REST Interface](REST-interface.md)
 - [BIPS](bips.md)
-- [Dnsseed Policy](dnsseed-policy.md)
 - [Benchmarking](benchmarking.md)
 - [Internal Design Docs](design/)
 
 ### Resources
-* Discuss on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Development & Technical Discussion board](https://bitcointalk.org/index.php?board=6.0).
-* Discuss project-specific development on #bitcoin-core-dev on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoin-core-dev).
+
+* Discusión y PRs: https://github.com/gonzalolinaresamezcua/BitcoinAll
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)

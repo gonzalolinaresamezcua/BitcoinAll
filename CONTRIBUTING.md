@@ -69,26 +69,13 @@ To contribute a patch, the workflow is as follows:
   1. Fork repository ([only for the first time](https://docs.github.com/en/get-started/quickstart/fork-a-repo))
   1. Create topic branch
   1. Commit patches
+  1. Open a pull request against https://github.com/gonzalolinaresamezcua/BitcoinAll
 
-For GUI-related issues or pull requests, the https://github.com/gonzalolinaresamezcua/BitcoinAll/gui repository should be used.
-For all other issues and pull requests, the https://github.com/gonzalolinaresamezcua/BitcoinAll node repository should be used.
+Todo el código (nodo, wallet, GUI en `src/qt`, apps web) vive en **un único repositorio**.
+No existe repositorio GUI separado ni monorepo externo.
 
-The master branch for all monotree repositories is identical.
-
-As a rule of thumb, everything that only modifies `src/qt` is a GUI-only pull
-request. However:
-
-* For global refactoring or other transversal changes the node repository
-  should be used.
-* For GUI-related build system changes, the node repository should be used
-  because the change needs review by the build systems reviewers.
-* Changes in `src/interfaces` need to go to the node repository because they
-  might affect other components like the wallet.
-
-For large GUI changes that include build system and interface changes, it is
-recommended to first open a pull request against the GUI repository. When there
-is agreement to proceed with the changes, a pull request with the build system
-and interfaces changes can be submitted to the node repository.
+Cambios que solo tocan `src/qt`: indícalo en el título del PR con el prefijo `gui:`.
+Cambios transversales (`src/interfaces`, build system, consenso) siguen el mismo flujo en este repo.
 
 The project coding conventions in the [developer notes](doc/developer-notes.md)
 must be followed.
@@ -276,8 +263,8 @@ workload on reviewing.
 -------------------------
 
 The following applies to code changes to the BitcoinAll project (and related
-projects such as libsecp256k1), and is not to be confused with overall Bitcoin
-Network Protocol consensus changes.
+projects such as libsecp256k1), and is not to be confused with overall BTCA
+network consensus changes.
 
 Whether a pull request is merged into BitcoinAll rests with the project merge
 maintainers.
@@ -298,7 +285,7 @@ In general, all pull requests must:
     demonstrating the bug and also proving the fix. This helps prevent regression.
   - Change relevant comments and documentation when behaviour of code changes.
 
-Patches that change Bitcoin consensus rules are considerably more involved than
+Patches that change BTCA consensus rules are considerably more involved than
 normal because they affect the entire ecosystem and so must be preceded by
 extensive mailing list discussions and have a numbered BIP. While each case will
 be different, one should be prepared to expend more time and effort than for
@@ -359,7 +346,7 @@ higher in terms of discussion and peer review requirements, keeping in mind that
 mistakes could be very costly to the wider community. This includes refactoring
 of consensus-critical code.
 
-Where a patch set proposes to change the Bitcoin consensus, it must have been
+Where a patch set proposes to change the BTCA consensus, it must have been
 discussed extensively on the mailing list and IRC, be accompanied by a widely
 discussed BIP and have a generally widely perceived technical consensus of being
 a worthwhile change based on the judgement of the maintainers.
