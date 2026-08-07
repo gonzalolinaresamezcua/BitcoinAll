@@ -59,7 +59,196 @@ BitcoinAll **no tiene web de descarga propia**. El único sitio oficial del proy
 
 No uses enlaces tipo `@bitcoinall/en/download/` ni dominios de terceros: no pertenecen a este proyecto.
 
+---
+
+## Manual de uso en Ubuntu
+
+Guía paso a paso para compilar, arrancar el nodo, crear wallet y participar en la red PoU.  
+Repositorio oficial: **solo** [github.com/gonzalolinaresamezcua/BitcoinAll](https://github.com/gonzalolinaresamezcua/BitcoinAll).
+
+### 1. Requisitos
+
+- Ubuntu 22.04 o 24.04 (64 bits)
+- ~4 GB RAM libre para compilar
+- Conexión a internet (para clonar y dependencias)
+
+### 2. Dependencias
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential cmake pkgconf python3 git \
+  libevent-dev libboost-dev libsqlite3-dev libzmq3-dev
+```
+
+Detalle completo de compilación: [doc/build-unix.md](doc/build-unix.md).
+
+### 3. Clonar y compilar
+
+```bash
+git clone https://github.com/gonzalolinaresamezcua/BitcoinAll.git
+cd BitcoinAll
+
+cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build -j"$(nproc)"
+```
+
+Binarios generados:
+
+| Programa | Ruta |
+|----------|------|
+| Nodo | `build/bin/bitcoind` |
+| CLI | `build/bin/bitcoin-cli` |
+| Wallet (opcional) | `build/bin/bitcoin-wallet` |
+
+### 4. Directorio de datos
+
+Crea un directorio local para la cadena y la wallet (recomendado dentro del repo):
+
+```bash
+mkdir -p ~/BitcoinAll/data
+```
+
+Opcional: archivo `data/bitcoin.conf` con opciones básicas:
+
+```ini
+server=1
+txindex=1
+rpcallowip=127.0.0.1
+```
+
+### 5. Arrancar el nodo
+
+**Ver toda la consola** (primer plano, ideal para depurar):
+
+```bash
+./build/bin/bitcoind \
+  -datadir="$(pwd)/data" \
+  -server \
+  -txindex=1 \
+  -wallet=primera \
+  -printtoconsole
+```
+
+**En segundo plano** (daemon):
+
+```bash
+./build/bin/bitcoind \
+  -datadir="$(pwd)/data" \
+  -server \
+  -txindex=1 \
+  -wallet=primera \
+  -daemon
+```
+
+**Parar el nodo:**
+
+```bash
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" stop
+```
+
+### 6. Crear wallet y dirección (participar en PoU)
+
+La wallet guarda tus claves. La dirección `btca1...` es tu **identidad** en el consenso PoU (KeyID vinculado a tu clave pública).
+
+```bash
+# Crear wallet (solo la primera vez)
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" createwallet "primera"
+
+# Si ya existe, cargarla
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" loadwallet "primera"
+
+# Nueva dirección de recepción (bech32 → btca1...)
+./build/bin/bitcoin-cli \
+  -datadir="$(pwd)/data" \
+  -rpcwallet=primera \
+  getnewaddress "" bech32
+```
+
+Guarda la dirección que devuelve el comando.
+
+### 7. Consultar estado de la red y PoU
+
+```bash
+# Estado general de la cadena
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" getblockchaininfo
+
+# Conexiones P2P
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" getnetworkinfo
+
+# Uptime acumulado de tu nodo (sustituye TU_DIRECCION)
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" \
+  getnodeconnectiontimes "btca1TU_DIRECCION"
+
+# Saldo de la wallet
+./build/bin/bitcoin-cli -datadir="$(pwd)/data" -rpcwallet=primera getbalance
+```
+
+### 8. Cómo funciona la participación PoU
+
+| Paso | Qué hace |
+|------|----------|
+| Nodo online | El nodo permanece conectado a la red P2P |
+| `createwallet` + `getnewaddress` | Define tu identidad on-chain (`btca1...`) |
+| TX `BTCA_TIME` | Registra segundos de uptime en un bloque |
+| Recompensa | **100 BTCA** por cada **24 h** de uptime acumulado recompensable |
+
+El uptime no se “activa” solo con crear la dirección: debe quedar registrado en cadena mediante transacciones `BTCA_TIME` validadas por el consenso.
+
+### 9. Explorer y wallet web (opcional)
+
+Con el nodo en marcha, puedes usar las apps locales incluidas en el repo:
+
+```bash
+# Explorador de bloques → http://127.0.0.1:9336
+./explorer-app/run.sh start
+
+# Wallet web → http://127.0.0.1:9335
+./wallet-app/run.sh start
+```
+
+Parar:
+
+```bash
+./explorer-app/run.sh stop
+./wallet-app/run.sh stop
+```
+
+### 10. Resolución de problemas
+
+| Síntoma | Solución |
+|---------|----------|
+| `error: timeout on transient error: Could not connect to the server` | El nodo no está corriendo; arranca `bitcoind` primero |
+| `Wallet already exists` | Usa `loadwallet "nombre"` en lugar de `createwallet` |
+| `Cannot obtain a lock on data directory` | Ya hay otro `bitcoind` usando ese `-datadir`; para el otro o usa otro directorio |
+| `connections: 0` | Normal si eres el único nodo; otros peers deben usar la misma red/cadena |
+
+Logs del nodo: `data/debug.log`
+
+### 11. Comandos de referencia rápida
+
+```bash
+export BTCA_DIR="$(pwd)/data"
+export BTCA_CLI="./build/bin/bitcoin-cli -datadir=$BTCA_DIR"
+export BTCA_WALLET="-rpcwallet=primera"
+
+# Estado
+$BTCA_CLI getblockchaininfo
+$BTCA_CLI getnetworkinfo
+
+# Wallet
+$BTCA_CLI $BTCA_WALLET getnewaddress "" bech32
+$BTCA_CLI $BTCA_WALLET getbalance
+$BTCA_CLI $BTCA_WALLET listtransactions
+
+# PoU
+$BTCA_CLI getnodeconnectiontimes "btca1..."
+```
+
+---
+
 ## ¿Qué es BitcoinAll Core?
+
 
 BitcoinAll Core se conecta a la red peer-to-peer de BitcoinAll para descargar y validar completamente bloques y transacciones. Incluye wallet e interfaz gráfica (compilación opcional).
 
