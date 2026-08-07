@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import socket
 import time
 import urllib.error
 import urllib.request
@@ -19,6 +20,7 @@ RPC_HOST = os.environ.get("BITCOINALL_RPC_HOST", "127.0.0.1")
 RPC_PORT = int(os.environ.get("BITCOINALL_RPC_PORT", "8332"))
 BIND_HOST = os.environ.get("BITCOINALL_NODE_BIND", "127.0.0.1")
 BIND_PORT = int(os.environ.get("BITCOINALL_NODE_PORT", "9337"))
+P2P_PORT = int(os.environ.get("BITCOINALL_P2P_PORT", "9333"))
 
 app = Flask(__name__, static_folder=str(APP_DIR / "static"), static_url_path="")
 
@@ -125,6 +127,83 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+def local_lan_ip() -> str | None:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except OSError:
+        return None
+
+
+def public_ip() -> str | None:
+    try:
+        req = urllib.request.Request("https://api.ipify.org", method="GET")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            ip = resp.read().decode("ascii").strip()
+            if ip:
+                return ip
+    except Exception:
+        pass
+    return None
+
+
+def p2p_listening() -> bool:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
+            return s.connect_ex(("127.0.0.1", P2P_PORT)) == 0
+    except OSError:
+        return False
+
+
+@app.get("/api/bootstrap")
+def bootstrap():
+    try:
+        network = rpc_call("getnetworkinfo") or {}
+        lan = local_lan_ip()
+        pub = public_ip()
+        listening = p2p_listening()
+        addnodes = []
+        conf_path = DATADIR / "bitcoin.conf"
+        if conf_path.exists():
+            for line in conf_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line.startswith("addnode="):
+                    addnodes.append(line.split("=", 1)[1])
+
+        endpoints = []
+        if lan:
+            endpoints.append({"scope": "LAN", "address": f"{lan}:{P2P_PORT}"})
+        if pub:
+            endpoints.append({"scope": "Internet", "address": f"{pub}:{P2P_PORT}"})
+        for addr in network.get("localaddresses") or []:
+            ep = f"{addr.get('address')}:{addr.get('port', P2P_PORT)}"
+            if ep not in [e["address"] for e in endpoints]:
+                endpoints.append({"scope": "Anunciada", "address": ep})
+
+        share_lines = [f"addnode={e['address']}" for e in endpoints]
+        return jsonify(
+            {
+                "ok": True,
+                "p2p_port": P2P_PORT,
+                "listening": listening,
+                "networkactive": network.get("networkactive", False),
+                "has_dns_seeds": False,
+                "has_fixed_seeds": True,
+                "endpoints": endpoints,
+                "configured_addnodes": addnodes,
+                "share_for_others": share_lines,
+                "connect_hint": (
+                    "Al arrancar, bitcoind intenta conectar solo a nodos semilla (fixed seeds + seednode). "
+                    "Cuando hay varios nodos en la red, se intercambian direcciones y se sincronizan automáticamente."
+                ),
+            }
+        )
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 503
+
+
 @app.get("/api/overview")
 def overview():
     try:
@@ -167,6 +246,8 @@ def overview():
                     "uptime": uptime,
                     "uptime_human": fmt_duration(uptime),
                 },
+                "p2p_port": P2P_PORT,
+                "p2p_listening": p2p_listening(),
             }
         )
     except Exception as exc:

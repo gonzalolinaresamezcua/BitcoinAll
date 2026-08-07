@@ -98,6 +98,56 @@ function renderLocal(ov) {
     </table>`;
 }
 
+function renderBootstrap(info) {
+  const el = $("#bootstrap-info");
+  if (!el || !info) return;
+
+  const listenOk = info.listening && info.networkactive;
+  const endpoints = info.endpoints || [];
+  const share = (info.share_for_others || []).join("\n") || "# (no se detectó IP automáticamente)";
+
+  el.innerHTML = `
+    <p>Tu nodo ${listenOk ? "<strong>escucha en el puerto P2P 9333</strong> y usa nodos semilla automáticos" : "no parece escuchar en 9333"}.
+    Al arrancar, bitcoind intenta conectar a otros nodos BitcoinAll y sincronizar la cadena. Si eres el único operador activo, puede tardar un poco o quedar en 0 hasta que haya más nodos online.</p>
+    <div class="bootstrap-block">
+      <h4>Comparte esto con quien instale otro nodo</h4>
+      <p>En su <code>data/bitcoin.conf</code>:</p>
+      <pre id="share-addnode">${share || `addnode=TU_IP_PUBLICA:9333`}</pre>
+      <div class="copy-row">
+        <button type="button" class="btn secondary btn-sm" id="copy-addnode">Copiar addnode</button>
+      </div>
+    </div>
+    <div class="bootstrap-block">
+      <h4>Para conectar TÚ a otro nodo</h4>
+      <p>Añade en tu <code>data/bitcoin.conf</code> y reinicia bitcoind:</p>
+      <pre>addnode=IP_DEL_OTRO:9333</pre>
+    </div>
+    ${endpoints.length ? `
+    <div class="bootstrap-block">
+      <h4>Tus direcciones detectadas</h4>
+      <ul>${endpoints.map((e) => `<li><strong>${e.scope}:</strong> <code>${e.address}</code></li>`).join("")}</ul>
+      <p class="hint" style="margin:0">Abre el puerto <strong>9333/TCP</strong> en el router/firewall para conexiones entrantes desde Internet.</p>
+    </div>` : ""}
+    ${(info.configured_addnodes || []).length ? `
+    <div class="bootstrap-block">
+      <h4>addnode configurados</h4>
+      <ul>${info.configured_addnodes.map((a) => `<li><code>${a}</code></li>`).join("")}</ul>
+    </div>` : ""}`;
+
+  $("#copy-addnode")?.addEventListener("click", () => {
+    const text = $("#share-addnode")?.textContent || "";
+    navigator.clipboard.writeText(text).then(() => toast("Copiado al portapapeles"));
+  });
+}
+
+async function loadBootstrap() {
+  try {
+    return await api("/api/bootstrap");
+  } catch {
+    return null;
+  }
+}
+
 function renderPeersTable(peers) {
   lastPeers = peers;
   const empty = $("#peers-empty");
@@ -110,6 +160,7 @@ function renderPeersTable(peers) {
   if (!peers.length) {
     empty.classList.remove("hidden");
     wrap.innerHTML = "";
+    loadBootstrap().then(renderBootstrap);
     return;
   }
   empty.classList.add("hidden");

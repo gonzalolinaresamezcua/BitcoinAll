@@ -55,7 +55,7 @@
         <p id="peers-hint" class="hint">Lista de nodos conectados a tu bitcoind. Haz clic en uno para ver todos sus datos.</p>
         <div id="peers-empty" class="empty-state hidden">
           <p class="empty-title">Ningún peer conectado</p>
-          <p class="empty-text">Tu nodo está activo pero aún no tiene vecinos. Asegúrate de que <code>-listen=1</code> esté en <code>bitcoin.conf</code> y que otros nodos puedan alcanzar tu IP/puerto P2P (8333).</p>
+          <div id="bootstrap-info" class="empty-text"></div>
         </div>
         <div id="peers-table" class="table-wrap"></div>
       </section>
