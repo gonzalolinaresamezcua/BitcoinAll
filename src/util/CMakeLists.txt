@@ -1,5 +1,5 @@
 # Copyright (c) 2023-present The Bitcoin Core developers
-# Copyright (c) 2025 The Bitcoin All developers
+# Copyright (c) 2025-2026 The Bitcoin All developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 

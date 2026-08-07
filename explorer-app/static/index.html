@@ -13,19 +13,46 @@
         <div class="logo">⛓</div>
         <div>
           <h1>BitcoinAll Explorer</h1>
-          <p id="chain-status" class="subtitle">Conectando…</p>
+          <p id="chain-status" class="subtitle">Conectando al nodo…</p>
         </div>
       </div>
-      <div class="stats-row" id="header-stats"></div>
+      <div class="header-stats">
+        <div class="stat">
+          <span class="label">Bloques</span>
+          <span id="stat-blocks" class="value">—</span>
+        </div>
+        <div class="stat">
+          <span class="label">Mempool</span>
+          <span id="stat-mempool" class="value">—</span>
+        </div>
+      </div>
     </header>
 
-    <form id="search-form" class="search-bar">
-      <input type="text" id="search-input" placeholder="Buscar: altura, bloque, txid o dirección btca1…" autocomplete="off">
-      <button type="submit" class="btn primary">Buscar</button>
+    <form id="search-form" class="search-card">
+      <p class="label">Buscar en la blockchain</p>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="Dirección btca1…, altura, bloque o txid" autocomplete="off">
+        <button type="submit" class="btn primary">Buscar</button>
+      </div>
+      <p id="search-error" class="search-error hidden"></p>
     </form>
+
+    <section id="address-result" class="balance-card hidden">
+      <p class="label">Saldo de dirección</p>
+      <p class="balance"><span id="addr-balance">0.00</span> <small>BTCA</small></p>
+      <div class="hero-address">
+        <span class="label">Dirección</span>
+        <div class="hero-address-row">
+          <code id="addr-display">—</code>
+          <button type="button" id="copy-addr" class="btn secondary btn-sm">Copiar</button>
+        </div>
+      </div>
+      <p id="addr-meta" class="pending"></p>
+    </section>
 
     <nav class="tabs">
       <button class="tab active" data-tab="home">Inicio</button>
+      <button class="tab" data-tab="address">Dirección</button>
       <button class="tab" data-tab="blocks">Bloques</button>
       <button class="tab" data-tab="mempool">Mempool</button>
       <button class="tab" data-tab="detail">Detalle</button>
@@ -37,6 +64,12 @@
         <dl class="info-grid" id="chain-info"></dl>
         <h2>Últimos bloques</h2>
         <div id="home-blocks" class="table-wrap"></div>
+      </section>
+
+      <section id="panel-address" class="panel">
+        <h2>Detalle de dirección</h2>
+        <p class="hint">Busca una dirección arriba para ver saldo, UTXOs e historial completo de transacciones.</p>
+        <div id="address-detail"></div>
       </section>
 
       <section id="panel-blocks" class="panel">
@@ -57,12 +90,12 @@
 
       <section id="panel-detail" class="panel">
         <div id="detail-content">
-          <p class="hint">Busca un bloque, transacción o dirección arriba.</p>
+          <p class="hint">Resultado de bloques y transacciones aparecerá aquí.</p>
         </div>
       </section>
     </main>
 
-    <footer>Solo localhost · Explorador de tu nodo BitcoinAll · txindex activo</footer>
+    <footer>Solo localhost · Explorador BitcoinAll · <a href="http://127.0.0.1:9335" class="footer-link">Wallet</a></footer>
   </div>
 
   <div id="toast" class="toast hidden"></div>

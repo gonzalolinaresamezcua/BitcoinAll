@@ -9,6 +9,17 @@ function toast(msg, type = "ok") {
   toast._t = setTimeout(() => el.classList.add("hidden"), 3500);
 }
 
+function showSearchError(msg) {
+  const el = $("#search-error");
+  if (!msg) {
+    el.textContent = "";
+    el.classList.add("hidden");
+    return;
+  }
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
 async function api(path) {
   const res = await fetch(path);
   const data = await res.json();
@@ -33,6 +44,7 @@ function fmtTime(ts) {
 
 function fmtBtca(n) {
   const v = Number(n);
+  if (Number.isNaN(v)) return "0.00";
   return v.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 8 });
 }
 
@@ -65,17 +77,15 @@ function blocksTable(blocks, container, onClick) {
 async function loadChain() {
   try {
     const data = await api("/api/chain");
-    $("#chain-status").textContent = `main · bloque ${data.blocks}`;
-    $("#header-stats").innerHTML = `
-      <div class="stat-chip"><span class="label">Bloques</span><div class="value">${data.blocks}</div></div>
-      <div class="stat-chip"><span class="label">Mempool</span><div class="value">${data.mempool?.size ?? 0}</div></div>
-      <div class="stat-chip"><span class="label">Tx totales</span><div class="value">${data.txstats?.txcount ?? "—"}</div></div>
-    `;
+    $("#chain-status").textContent = `${data.chain} · bloque ${data.blocks}`;
+    $("#stat-blocks").textContent = data.blocks ?? "—";
+    $("#stat-mempool").textContent = data.mempool?.size ?? 0;
     $("#chain-info").innerHTML = `
       <dt>Cadena</dt><dd>${data.chain}</dd>
       <dt>Mejor bloque</dt><dd>${data.bestblockhash}</dd>
       <dt>Dificultad</dt><dd>${Number(data.difficulty).toExponential(3)}</dd>
       <dt>Tamaño en disco</dt><dd>${((data.size_on_disk || 0) / 1024).toFixed(1)} KB</dd>
+      <dt>Tx totales</dt><dd>${data.txstats?.txcount ?? "—"}</dd>
       <dt>Mempool</dt><dd>${data.mempool?.size ?? 0} txs · ${((data.mempool?.bytes || 0) / 1024).toFixed(1)} KB</dd>
     `;
   } catch (err) {
@@ -130,10 +140,95 @@ function renderDetail(html) {
   $("#detail-content").innerHTML = html;
 }
 
+function categoryLabel(cat) {
+  const map = {
+    generate: "minado",
+    receive: "recibido",
+    send: "enviado",
+    immature: "inmaduro",
+    move: "movimiento",
+  };
+  return map[cat] || cat || "—";
+}
+
+function renderAddressPanel(data) {
+  const card = $("#address-result");
+  card.classList.remove("hidden");
+  const displayBalance = data.balance ?? data.total_received ?? 0;
+  $("#addr-balance").textContent = fmtBtca(displayBalance);
+  $("#addr-display").textContent = data.address;
+
+  const parts = [];
+  if (data.utxo_count != null) parts.push(`${data.utxo_count} UTXO${data.utxo_count === 1 ? "" : "s"}`);
+  if (data.tx_count != null) parts.push(`${data.tx_count} transaccion${data.tx_count === 1 ? "" : "es"}`);
+  if (data.scan_height != null) parts.push(`bloque ${data.scan_height}`);
+  if (data.source === "wallet") parts.push(`wallet: ${data.wallet_name || "primera"}`);
+  if (data.total_received != null && Number(data.total_received) !== Number(displayBalance)) {
+    parts.push(`recibido total: ${fmtBtca(data.total_received)} BTCA`);
+  }
+  $("#addr-meta").textContent = parts.join(" · ");
+
+  const txRows = (data.transactions || []).map((t) => {
+    const amt = Number(t.amount);
+    const sign = amt >= 0 ? "+" : "";
+    const cls = amt >= 0 ? "amount-in" : "amount-out";
+    return `
+      <tr class="clickable" data-txid="${t.txid}">
+        <td class="mono link">${short(t.txid, 14)}</td>
+        <td><span class="tag">${categoryLabel(t.category)}</span></td>
+        <td class="${cls}">${sign}${fmtBtca(amt)} BTCA</td>
+        <td>${t.blockheight ?? "—"}</td>
+        <td>${t.confirmations ?? 0}</td>
+        <td>${fmtTime(t.time || t.timereceived)}</td>
+      </tr>`;
+  }).join("");
+
+  const utxoRows = (data.utxos || []).map((u) => `
+      <tr class="clickable" data-txid="${u.txid}">
+        <td class="mono link">${short(u.txid, 12)}</td>
+        <td>${u.vout}</td>
+        <td>${fmtBtca(u.amount)} BTCA</td>
+        <td>${u.height ?? "—"}</td>
+        <td>${u.confirmations ?? 0}${u.coinbase ? " · <span class='tag'>coinbase</span>" : ""}</td>
+      </tr>`).join("");
+
+  $("#address-detail").innerHTML = `
+    <div class="detail-card">
+      <h3>Historial de transacciones (${data.tx_count || 0})</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>TXID</th><th>Tipo</th><th>Cantidad</th><th>Altura</th><th>Conf</th><th>Fecha</th>
+          </tr></thead>
+          <tbody>
+            ${txRows || "<tr><td colspan='6'>Sin transacciones (dirección no está en wallet local)</td></tr>"}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="detail-card">
+      <h3>UTXOs sin gastar (${data.utxo_count || 0})</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>TXID</th><th>Vout</th><th>Cantidad</th><th>Altura</th><th>Conf</th></tr></thead>
+          <tbody>
+            ${utxoRows || "<tr><td colspan='5'>Sin UTXOs en esta dirección</td></tr>"}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  $("#address-detail").querySelectorAll("[data-txid]").forEach((row) => {
+    row.closest("tr")?.addEventListener("click", () => showTx(row.dataset.txid));
+  });
+}
+
 async function showBlock(id) {
+  showSearchError("");
+  $("#address-result").classList.add("hidden");
   renderDetail("<p class='hint'>Cargando bloque…</p>");
   try {
-    const { block, txs_summary, stats } = await api(`/api/block/${id}`);
+    const { block, txs_summary } = await api(`/api/block/${id}`);
     const coinbase = txs_summary.find((t) => t.coinbase);
     let coinbaseMsg = "";
     if (coinbase) {
@@ -143,7 +238,9 @@ async function showBlock(id) {
         try {
           const bytes = cb.match(/.{1,2}/g).map((h) => parseInt(h, 16));
           coinbaseMsg = new TextDecoder().decode(new Uint8Array(bytes.slice(4))).replace(/\0/g, "").trim();
-        } catch (_) { coinbaseMsg = cb; }
+        } catch (_) {
+          coinbaseMsg = cb;
+        }
       }
     }
     renderDetail(`
@@ -185,11 +282,14 @@ async function showBlock(id) {
     });
   } catch (err) {
     renderDetail(`<p class="hint">${err.message}</p>`);
+    showSearchError(err.message);
     toast(err.message, "error");
   }
 }
 
 async function showTx(txid) {
+  showSearchError("");
+  $("#address-result").classList.add("hidden");
   renderDetail("<p class='hint'>Cargando transacción…</p>");
   try {
     const { tx } = await api(`/api/tx/${txid}`);
@@ -199,7 +299,7 @@ async function showTx(txid) {
         <h3>Transacción</h3>
         <dl class="info-grid">
           <dt>TXID</dt><dd>${tx.txid}</dd>
-          <dt>Bloque</dt><dd class="link" data-block="${tx.blockhash}">${tx.blockhash} (#${tx.confirmations ? "confirmada" : "?"})</dd>
+          <dt>Bloque</dt><dd class="link" data-block="${tx.blockhash}">${tx.blockhash}</dd>
           <dt>Hora</dt><dd>${fmtTime(tx.time)}</dd>
           <dt>Confirmaciones</dt><dd>${tx.confirmations ?? 0}</dd>
           <dt>Total salida</dt><dd>${fmtBtca(totalOut)} BTCA</dd>
@@ -207,12 +307,11 @@ async function showTx(txid) {
         </dl>
       </div>
       <h2>Entradas (${tx.vin.length})</h2>
-      <div class="table-wrap"><table><thead><tr><th>#</th><th>Prevout</th><th>Valor</th></tr></thead><tbody>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Prevout</th></tr></thead><tbody>
         ${tx.vin.map((v, i) => `
           <tr>
             <td>${i}</td>
             <td class="mono">${v.coinbase ? `coinbase: ${short(v.coinbase, 20)}` : `${short(v.txid, 10)}:${v.vout}`}</td>
-            <td>${v.coinbase ? "—" : ""}</td>
           </tr>`).join("")}
       </tbody></table></div>
       <h2>Salidas (${tx.vout.length})</h2>
@@ -233,47 +332,28 @@ async function showTx(txid) {
     });
   } catch (err) {
     renderDetail(`<p class="hint">${err.message}</p>`);
+    showSearchError(err.message);
     toast(err.message, "error");
   }
 }
 
-async function showAddress(address) {
-  renderDetail("<p class='hint'>Escaneando UTXOs…</p>");
+async function showAddress(address, options = {}) {
+  const { switchToAddressTab = true } = options;
+  showSearchError("");
+  $("#search-input").value = address;
+
+  if (switchToAddressTab) switchTab("address");
+  renderAddressPanel({ address, balance: 0, utxo_count: 0, utxos: [], scan_height: null });
+  $("#addr-meta").textContent = "Escaneando UTXOs en la blockchain…";
+
   try {
     const data = await api(`/api/address/${encodeURIComponent(address)}`);
-    renderDetail(`
-      <div class="detail-card">
-        <h3>Dirección</h3>
-        <p class="mono">${data.address}</p>
-        <p class="balance-big">${fmtBtca(data.balance)} BTCA</p>
-        <dl class="info-grid">
-          <dt>UTXOs</dt><dd>${data.utxo_count}</dd>
-          <dt>Escaneado en bloque</dt><dd>${data.scan_height}</dd>
-          ${data.wallet_info?.ismine ? "<dt>Wallet local</dt><dd>Sí (primera)</dd>" : ""}
-        </dl>
-      </div>
-      <h2>UTXOs sin gastar</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>TXID</th><th>Vout</th><th>Cantidad</th><th>Altura</th><th>Conf</th></tr></thead>
-          <tbody>
-            ${(data.utxos || []).map((u) => `
-              <tr class="clickable" data-txid="${u.txid}">
-                <td class="mono">${short(u.txid, 12)}</td>
-                <td>${u.vout}</td>
-                <td>${fmtBtca(u.amount)} BTCA</td>
-                <td>${u.height}</td>
-                <td>${u.confirmations}${u.coinbase ? " · <span class='tag'>coinbase</span>" : ""}</td>
-              </tr>`).join("") || "<tr><td colspan='5'>Sin UTXOs</td></tr>"}
-          </tbody>
-        </table>
-      </div>
-    `);
-    $("#detail-content").querySelectorAll("[data-txid]").forEach((row) => {
-      row.closest("tr")?.addEventListener("click", () => showTx(row.dataset.txid));
-    });
+    renderAddressPanel(data);
+    toast(`Saldo: ${fmtBtca(data.balance)} BTCA`, "ok");
   } catch (err) {
-    renderDetail(`<p class="hint">${err.message}</p>`);
+    $("#address-result").classList.add("hidden");
+    $("#address-detail").innerHTML = `<p class="hint">${err.message}</p>`;
+    showSearchError(err.message);
     toast(err.message, "error");
   }
 }
@@ -282,12 +362,16 @@ async function doSearch(q) {
   q = q.trim();
   if (!q) return;
   $("#search-input").value = q;
+  showSearchError("");
+
   try {
     const data = await api(`/api/search?q=${encodeURIComponent(q)}`);
     if (data.type === "block") await showBlock(data.id);
     else if (data.type === "tx") await showTx(data.id);
-    else if (data.type === "address") await showAddress(data.id);
+    else if (data.type === "address") await showAddress(data.result.address || data.id);
   } catch (err) {
+    $("#address-result").classList.add("hidden");
+    showSearchError(err.message);
     toast(err.message, "error");
   }
 }
@@ -295,6 +379,17 @@ async function doSearch(q) {
 $("#search-form").addEventListener("submit", (e) => {
   e.preventDefault();
   doSearch($("#search-input").value);
+});
+
+$("#copy-addr").addEventListener("click", async () => {
+  const addr = $("#addr-display").textContent;
+  if (!addr || addr === "—") return;
+  try {
+    await navigator.clipboard.writeText(addr);
+    toast("Dirección copiada", "ok");
+  } catch {
+    toast("No se pudo copiar", "error");
+  }
 });
 
 $$(".tab").forEach((tab) => {
@@ -310,4 +405,7 @@ $("#refresh-mempool").addEventListener("click", loadMempool);
 
 loadChain();
 loadBlocks(10, "#home-blocks");
-setInterval(() => { loadChain(); loadBlocks(10, "#home-blocks"); }, 20000);
+setInterval(() => {
+  loadChain();
+  loadBlocks(10, "#home-blocks");
+}, 20000);

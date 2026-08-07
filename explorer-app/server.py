@@ -19,9 +19,14 @@ RPC_HOST = os.environ.get("BITCOINALL_RPC_HOST", "127.0.0.1")
 RPC_PORT = int(os.environ.get("BITCOINALL_RPC_PORT", "8332"))
 BIND_HOST = os.environ.get("BITCOINALL_EXPLORER_BIND", "127.0.0.1")
 BIND_PORT = int(os.environ.get("BITCOINALL_EXPLORER_PORT", "9336"))
+WALLET_NAME = os.environ.get("BITCOINALL_WALLET", "primera")
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
-ADDR_RE = re.compile(r"^(btca1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$")
+# btca1 bech32 + legacy AG/B prefixes used in BitcoinAll
+ADDR_RE = re.compile(
+    r"^(btca1[a-z0-9]{20,87}|[AG][a-km-zA-HJ-NP-Z1-9]{25,34}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$",
+    re.IGNORECASE,
+)
 
 app = Flask(__name__, static_folder=str(APP_DIR / "static"), static_url_path="")
 
@@ -31,6 +36,13 @@ class RpcError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
+
+
+def normalize_query(q: str) -> str:
+    q = q.strip()
+    if q.lower().startswith("btca1"):
+        return q.lower()
+    return q
 
 
 def read_cookie() -> tuple[str, str]:
@@ -81,6 +93,156 @@ def rpc_call(method: str, params: list | None = None, wallet: str | None = None)
         err = data["error"]
         raise RpcError(err.get("code", -1), err.get("message", "RPC error"))
     return data.get("result")
+
+
+def ensure_wallet_loaded(name: str) -> None:
+    wallets = rpc_call("listwallets") or []
+    if name not in wallets:
+        try:
+            rpc_call("loadwallet", [name])
+        except RpcError as exc:
+            if exc.code != -4:
+                raise
+
+
+def fetch_wallet_transactions(address: str, wallet: str) -> list[dict]:
+    """Pagina listtransactions y filtra por dirección."""
+    rows: list[dict] = []
+    skip = 0
+    batch = 500
+    while True:
+        chunk = rpc_call("listtransactions", ["*", batch, skip, True], wallet=wallet) or []
+        if not chunk:
+            break
+        for tx in chunk:
+            if tx.get("address") != address:
+                continue
+            rows.append(
+                {
+                    "txid": tx.get("txid"),
+                    "amount": tx.get("amount"),
+                    "category": tx.get("category"),
+                    "confirmations": tx.get("confirmations"),
+                    "blockheight": tx.get("blockheight"),
+                    "blockhash": tx.get("blockhash"),
+                    "time": tx.get("time"),
+                    "timereceived": tx.get("timereceived"),
+                    "label": tx.get("label"),
+                    "abandoned": tx.get("abandoned", False),
+                }
+            )
+        if len(chunk) < batch:
+            break
+        skip += batch
+    rows.sort(key=lambda r: (r.get("blockheight") or 0, r.get("time") or 0), reverse=True)
+    return rows
+
+
+def wallet_address_data(canonical: str, wallet: str) -> dict:
+    ensure_wallet_loaded(wallet)
+    wallet_info = rpc_call("getaddressinfo", [canonical], wallet=wallet)
+
+    unspent = rpc_call(
+        "listunspent",
+        [0, 9999999, [canonical], True, {"minimumAmount": 0}],
+        wallet=wallet,
+    ) or []
+    utxos = []
+    balance = 0.0
+    for u in unspent:
+        amount = float(u.get("amount", 0))
+        balance += amount
+        utxos.append(
+            {
+                "txid": u.get("txid"),
+                "vout": u.get("vout"),
+                "amount": amount,
+                "height": u.get("height"),
+                "confirmations": u.get("confirmations"),
+                "coinbase": u.get("coinbase", False),
+                "blockhash": None,
+                "spendable": u.get("spendable", True),
+                "safe": u.get("safe", True),
+            }
+        )
+
+    received = rpc_call("getreceivedbyaddress", [canonical, 0], wallet=wallet)
+    transactions = fetch_wallet_transactions(canonical, wallet)
+    tip = rpc_call("getblockcount")
+
+    return {
+        "address": canonical,
+        "balance": balance,
+        "total_received": received,
+        "utxo_count": len(utxos),
+        "utxos": utxos,
+        "transactions": transactions,
+        "tx_count": len(transactions),
+        "scan_height": tip,
+        "wallet_info": wallet_info,
+        "received_by_wallet": received,
+        "source": "wallet",
+        "wallet_name": wallet,
+    }
+
+
+def scan_address(address: str) -> dict:
+    if not ADDR_RE.match(address):
+        raise ValueError(
+            "Dirección no válida. Comprueba que sea btca1… (SegWit) sin espacios ni caracteres erróneos."
+        )
+
+    validation = rpc_call("validateaddress", [address])
+    if not validation.get("isvalid"):
+        raise ValueError(
+            f"Dirección rechazada por el nodo: «{address}». "
+            "Revisa que esté copiada completa (btca1… suele tener ~42 caracteres)."
+        )
+
+    canonical = validation.get("address") or address
+
+    wallet_info = None
+    try:
+        ensure_wallet_loaded(WALLET_NAME)
+        wallet_info = rpc_call("getaddressinfo", [canonical], wallet=WALLET_NAME)
+        if wallet_info.get("ismine"):
+            return wallet_address_data(canonical, WALLET_NAME)
+    except Exception:
+        wallet_info = None
+
+    try:
+        scan = rpc_call("scantxoutset", ["start", [f"addr({canonical})"]])
+    except RpcError as exc:
+        raise ValueError(f"No se pudo escanear la dirección: {exc.message}") from exc
+
+    utxos = []
+    for u in scan.get("unspents", []):
+        utxos.append(
+            {
+                "txid": u.get("txid"),
+                "vout": u.get("vout"),
+                "amount": u.get("amount"),
+                "height": u.get("height"),
+                "confirmations": u.get("confirmations"),
+                "coinbase": u.get("coinbase"),
+                "blockhash": u.get("blockhash"),
+            }
+        )
+
+    return {
+        "address": canonical,
+        "balance": scan.get("total_amount", 0),
+        "total_received": scan.get("total_amount", 0),
+        "utxo_count": scan.get("txouts", 0),
+        "utxos": utxos,
+        "transactions": [],
+        "tx_count": 0,
+        "scan_height": scan.get("height"),
+        "wallet_info": wallet_info,
+        "received_by_wallet": None,
+        "source": "chain",
+        "wallet_name": None,
+    }
 
 
 def resolve_block(identifier: str) -> dict:
@@ -205,43 +367,12 @@ def tx_detail(txid: str):
         return jsonify({"ok": False, "error": str(exc)}), 400
 
 
-@app.get("/api/address/<address>")
+@app.get("/api/address/<path:address>")
 def address_detail(address: str):
-    if not ADDR_RE.match(address):
-        return jsonify({"ok": False, "error": "Dirección inválida"}), 400
     try:
-        scan = rpc_call("scantxoutset", ["start", [f"addr({address})"]])
-        utxos = []
-        for u in scan.get("unspents", []):
-            utxos.append(
-                {
-                    "txid": u.get("txid"),
-                    "vout": u.get("vout"),
-                    "amount": u.get("amount"),
-                    "height": u.get("height"),
-                    "confirmations": u.get("confirmations"),
-                    "coinbase": u.get("coinbase"),
-                    "blockhash": u.get("blockhash"),
-                }
-            )
-
-        wallet_info = None
-        try:
-            wallet_info = rpc_call("getaddressinfo", [address], wallet="primera")
-        except Exception:
-            pass
-
-        return jsonify(
-            {
-                "ok": True,
-                "address": address,
-                "balance": scan.get("total_amount", 0),
-                "utxo_count": scan.get("txouts", 0),
-                "utxos": utxos,
-                "scan_height": scan.get("height"),
-                "wallet_info": wallet_info,
-            }
-        )
+        address = normalize_query(address)
+        data = scan_address(address)
+        return jsonify({"ok": True, **data})
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
 
@@ -269,7 +400,7 @@ def mempool():
 
 @app.get("/api/search")
 def search():
-    q = request.args.get("q", "").strip()
+    q = normalize_query(request.args.get("q", ""))
     if not q:
         return jsonify({"ok": False, "error": "Query vacía"}), 400
 
@@ -284,27 +415,20 @@ def search():
             except RpcError:
                 data = resolve_block(q)
                 return jsonify({"ok": True, "type": "block", "id": q, "result": data})
-        if ADDR_RE.match(q):
-            scan = rpc_call("scantxoutset", ["start", [f"addr({q})"]])
-            return jsonify(
-                {
-                    "ok": True,
-                    "type": "address",
-                    "id": q,
-                    "result": {
-                        "address": q,
-                        "balance": scan.get("total_amount", 0),
-                        "utxo_count": scan.get("txouts", 0),
-                        "utxos": scan.get("unspents", []),
-                    },
-                }
-            )
-        return jsonify({"ok": False, "error": "No reconocido: usa altura, hash, txid o dirección btca1…"}), 400
+        if q.lower().startswith("btca1") or ADDR_RE.match(q):
+            result = scan_address(q)
+            return jsonify({"ok": True, "type": "address", "id": result["address"], "result": result})
+        return jsonify(
+            {
+                "ok": False,
+                "error": "No reconocido. Usa: altura, hash de bloque, txid (64 hex) o dirección btca1…",
+            }
+        ), 400
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
 
 
 if __name__ == "__main__":
     print(f"BitcoinAll Explorer → http://{BIND_HOST}:{BIND_PORT}")
-    print(f"Nodo: {RPC_HOST}:{RPC_PORT}  datadir={DATADIR}")
+    print(f"Nodo: {RPC_HOST}:{RPC_PORT}  datadir={DATADIR}  wallet={WALLET_NAME}")
     app.run(host=BIND_HOST, port=BIND_PORT, debug=False)

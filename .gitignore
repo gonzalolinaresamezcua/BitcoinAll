@@ -10,6 +10,8 @@
 
 /wallet-app/.venv/
 /explorer-app/.venv/
+/explorer-app/explorer.log
+/explorer-app/explorer.pid
 /data/
 
 # Only ignore unexpected patches

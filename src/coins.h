@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
-// Copyright (c) 2025 The Bitcoin All developers
+// Copyright (c) 2025-2026 The Bitcoin All developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -416,7 +416,7 @@ public:
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
     void SetBestBlock(const uint256 &hashBlock);
-    bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) override;
+    bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) override LOCKS_EXCLUDED(m_uptime_mutex);
     std::unique_ptr<CCoinsViewCursor> Cursor() const override {
         throw std::logic_error("CCoinsViewCache cursor iteration not supported.");
     }
@@ -468,7 +468,7 @@ public:
      * to be forgotten.
      * If false is returned, the state of this cache (and its backing view) will be undefined.
      */
-    bool Flush();
+    bool Flush() LOCKS_EXCLUDED(m_uptime_mutex);
 
     /**
      * Push the modifications applied to this cache to its base while retaining
@@ -477,7 +477,7 @@ public:
      * to be forgotten.
      * If false is returned, the state of this cache (and its backing view) will be undefined.
      */
-    bool Sync();
+    bool Sync() LOCKS_EXCLUDED(m_uptime_mutex);
 
     /**
      * Removes the UTXO with the given outpoint from the cache, if it is
@@ -505,10 +505,10 @@ public:
     void SanityCheck() const;
 
     // BTCA: PoU uptime tracking (mirrors CoinsViewCache in txdb).
-    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
-    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
-    void SetUptime(const CKeyID& keyID, uint64_t nUptime);
-    void SetLastRewardedUptime(const CKeyID& keyID, uint64_t nLastRewardedUptime);
+    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override LOCKS_EXCLUDED(m_uptime_mutex);
+    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override LOCKS_EXCLUDED(m_uptime_mutex);
+    void SetUptime(const CKeyID& keyID, uint64_t nUptime) LOCKS_EXCLUDED(m_uptime_mutex);
+    void SetLastRewardedUptime(const CKeyID& keyID, uint64_t nLastRewardedUptime) LOCKS_EXCLUDED(m_uptime_mutex);
 
 private:
     /**
