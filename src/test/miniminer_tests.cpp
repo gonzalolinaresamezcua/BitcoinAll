@@ -4,7 +4,7 @@
 #include <node/mini_miner.h>
 #include <random.h>
 #include <txmempool.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <test/util/setup_common.h>
 #include <test/util/txmempool.h>

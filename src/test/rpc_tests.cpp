@@ -11,7 +11,7 @@
 #include <rpc/util.h>
 #include <test/util/setup_common.h>
 #include <univalue.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <any>
 

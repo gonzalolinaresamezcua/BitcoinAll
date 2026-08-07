@@ -13,7 +13,7 @@
 #include <util/fs_helpers.h>
 #include <util/result.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 
 #include <algorithm>

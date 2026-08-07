@@ -10,7 +10,7 @@
 #include <netaddress.h>
 #include <node/interface_ui.h>
 #include <sync.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 
 

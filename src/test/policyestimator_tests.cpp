@@ -8,7 +8,7 @@
 #include <test/util/txmempool.h>
 #include <txmempool.h>
 #include <uint256.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validationinterface.h>
 
 #include <test/util/setup_common.h>

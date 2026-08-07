@@ -22,7 +22,9 @@
 #include <stdint.h>
 
 #include <functional>
+#include <map>
 #include <unordered_map>
+#include <vector>
 
 /**
  * A UTXO entry.
@@ -300,6 +302,13 @@ struct CoinsViewCacheCursor
     }
 
     inline bool WillErase(CoinsCachePair& current) const noexcept { return m_will_erase || current.second.coin.IsSpent(); }
+
+    //! BTCA: PoU uptime entries to flush to the backing view (used by CCoinsViewDB::BatchWrite).
+    std::map<CKeyID, uint64_t> m_write_uptime;
+    std::map<CKeyID, uint64_t> m_write_last_rewarded_uptime;
+    std::vector<CKeyID> m_delete_uptime;
+    std::vector<CKeyID> m_delete_last_rewarded_uptime;
+
 private:
     size_t& m_usage;
     CoinsCachePair& m_sentinel;
@@ -336,9 +345,9 @@ public:
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() = default;
 
-    // BTCA: Methods for connection time tracking - must be implemented by derived classes
-    virtual bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const = 0;
-    virtual bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const = 0;
+    // BTCA: Pure virtual in CCoinsView — default stubs live in coins.cpp.
+    virtual bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const;
+    virtual bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const;
 
     //! Estimate database size (0 if not implemented)
     virtual size_t EstimateSize() const { return 0; }
@@ -495,9 +504,11 @@ public:
     //! Run an internal sanity check on the cache data structure. */
     void SanityCheck() const;
 
-    // BTCA: Add overrides for new CCoinsView virtual methods, following the existing pattern for error catching.
+    // BTCA: PoU uptime tracking (mirrors CoinsViewCache in txdb).
     bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
     bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
+    void SetUptime(const CKeyID& keyID, uint64_t nUptime);
+    void SetLastRewardedUptime(const CKeyID& keyID, uint64_t nLastRewardedUptime);
 
 private:
     /**
@@ -506,8 +517,9 @@ private:
      */
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;
 
-    /** A list of callbacks to execute upon leveldb read error. */
-    std::vector<std::function<void()>> m_err_callbacks;
+    mutable Mutex m_uptime_mutex;
+    std::map<CKeyID, uint64_t> m_cache_uptime GUARDED_BY(m_uptime_mutex);
+    std::map<CKeyID, uint64_t> m_cache_last_rewarded_uptime GUARDED_BY(m_uptime_mutex);
 };
 
 //! Utility function to add all of a transaction's outputs to a cache.
@@ -542,6 +554,8 @@ public:
 
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
+    bool GetUptime(const CKeyID& keyID, uint64_t& nUptime) const override;
+    bool GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const override;
 
 private:
     /** A list of callbacks to execute upon leveldb read error. */

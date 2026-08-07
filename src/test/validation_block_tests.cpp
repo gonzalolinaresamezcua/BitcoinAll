@@ -13,7 +13,7 @@
 #include <test/util/random.h>
 #include <test/util/script.h>
 #include <test/util/setup_common.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 #include <validationinterface.h>
 

@@ -13,7 +13,7 @@
 #include <crypto/sha512.h>
 #include <span.h>
 #include <support/cleanse.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <algorithm>
 #include <atomic>

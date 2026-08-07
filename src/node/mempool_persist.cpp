@@ -17,7 +17,7 @@
 #include <util/fs.h>
 #include <util/fs_helpers.h>
 #include <util/signalinterrupt.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 #include <cstdint>

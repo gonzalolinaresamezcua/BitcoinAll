@@ -5,7 +5,7 @@
 #include <test/fuzz/util/check_globals.h>
 
 #include <test/util/random.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <iostream>
 #include <memory>

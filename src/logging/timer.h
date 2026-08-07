@@ -8,7 +8,7 @@
 
 #include <logging.h>
 #include <util/macros.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/types.h>
 
 #include <chrono>

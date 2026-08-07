@@ -5,7 +5,7 @@
 #include <common/system.h>
 #include <interfaces/mining.h>
 #include <node/miner.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 #include <test/util/setup_common.h>

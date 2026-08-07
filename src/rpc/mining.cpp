@@ -38,7 +38,7 @@
 #include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -633,198 +633,14 @@ static std::string gbt_rule_value(const std::string& name, bool gbt_optional_rul
 static RPCHelpMan getblocktemplate()
 {
     return RPCHelpMan{"getblocktemplate",
-                "\nIf the request parameters object is empty, returns the block template suitable for mining.\nIf parameters must be specified, it is better to use the named parameters manner correctly (see example below).\nAny information that pertains to the next block must be updated in this template.\nWARNING: Bitcoinall has Proof-of-Work disabled. This RPC is deprecated and will likely be removed or significantly changed in future versions.\n",
-                {
-                    {"template_request", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "Format of the template",
-                        {
-                            {"mode", RPCArg::Type::STR, RPCArg::Default{"template"}, "This must be set to \"template\", \"proposal\" (see BIP23), or \"dump\" (see BIP145)"},
-                            {"rules", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A list of strings outlining client features",
-                                {
-                                    {"value", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "client side supported feature, 'segwit' and 'segwit-block' are automatically reported"},
-                                },
-                                "rules"
-                            },
-                            {"capabilities", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A list of strings giving client capabilities. Currently only 'proposal' is supported.",
-                                {
-                                    {"value", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "client side supported capability"},
-                                },
-                            },
-                            {"longpollid", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Previously seen longpollid indicates this call is a follow-up to a getblocktemplate call. Save hashrate estimate, and send an update if a new block is found"},
-                        },
-                        "template_request"
-                    },
-                },
-                RPCResult{
-                    RPCResult::Type::OBJ, "", "",
-                    {
-                        {RPCResult::Type::ELISION, "", "Various keys from the JSON-RPC 2.0 specification are present here. Clear help for details."}
-                    }
-                },
-                RPCExamples{
-                    HelpExampleCli("getblocktemplate", "\"{\\\"rules\\\":[\\\"segwit\\\"]}\"")
-                  + HelpExampleRpc("getblocktemplate", "{\"rules\":[\"segwit\"]}")
-                },
+                "\nDeprecated: Proof-of-Work mining is disabled in Bitcoinall.\n",
+                {},
+                RPCResult{RPCResult::Type::NONE, "", ""},
+                RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    // BTCA: PoW is disabled.
     throw JSONRPCError(RPC_METHOD_DEPRECATED, "Proof-of-Work mining is disabled in Bitcoinall. getblocktemplate is deprecated.");
-    // Todo el código original de la función ha sido eliminado/comentado.
-    /*
-    ChainstateManager& chainman = EnsureAnyChainman(request.context);
-    NodeContext& node = EnsureAnyNodeContext(request.context);
-    Mining& mining_interface = EnsureMining(node);
-
-    LOCK(cs_main);
-
-    // RPCArg comments are not used for argument description, RPCHelpMan does that.
-    const UniValue& request_params = request.params[0].get_obj();
-
-    // Options:
-    // JSONRPCType mode = request_params["mode"].type();
-    const std::string mode = request_params.exists("mode") ? request_params["mode"].get_str() : "template";
-
-    if (mode == "dump") {
-        DisconnectedBlockTransactions disconnected_pool{Assert(node.mempool)->GetDisconnectedPool()};
-        disconnected_pool.DumpToDisk();
-        return NullUniValue;
-    }
-
-    if (mode != "template" && mode != "proposal") {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
-    }
-
-    if (chainman.IsInitialBlockDownload()) {
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Bitcoin is downloading blocks...");
-    }
-
-    // TODO: remove this when GBT clients have been updated to RPCAccount terms
-    if (request.params[0].isObject()) {
-        UniValue par = request.params["rules"].get_obj();
-        RPCTypeCheckArgument(par["rules"], UniValue::VARR);
-    }
-
-    static const std::set<std::string> SUPPORTED_RULES{{
-        "!segwit",
-        "!blockversion", // Ignore bitcoind's version
-        "!vbavailable",  // Ignore bitcoind's version bits
-        "!norecursivemutation", // Ignore proposal requirement not to mutate parent
-        "csv", // Require CoinBaseSoftfork block version for CSV
-    }};
-
-    // The features supported by this template.
-    UniValue features(UniValue::VARR);
-    features.push_back("segwit");
-    features.push_back("segwit-block"); // Always allows segwit blocks, this client does not care what other clients support
-
-    // Check for rule compatibility
-    std::set<std::string> setClientRules;
-    if (request_params.exists("rules") && request_params["rules"].isArray()) {
-        const UniValue& arr = request_params["rules"].get_array();
-        for (unsigned int i = 0; i < arr.size(); ++i) {
-            const UniValue& val = arr[i];
-            if (val.isStr()) {
-                setClientRules.insert(val.get_str());
-            }
-        }
-    }
-
-    // Check for segwit rule compatibility. We require "segwit" or "!segwit" for this client version.
-    // Note that the lack of "segwit" or presence of "!segwit" indicates the client can't produce segwit blocks.
-    if (setClientRules.count("segwit") == 0 && setClientRules.count("!segwit") == 0) {
-        // This error message comes from BIP9, SegWit an exception to "BiP9 requires that implementations ignore unknown rules".
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the segwit rule set (call with \"rules\":[\"segwit\"])");
-    }
-
-    std::unique_ptr<BlockTemplate> blocktemplate = mining_interface.getBlockTemplate(request_params, setClientRules);
-    if (!blocktemplate) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
-    }
-
-    if (mode == "proposal")
-    {
-        const CBlock& block = blocktemplate->getBlock();
-        for (const auto& tx : block.vtx) {
-            if (tx->IsCoinBase()) continue;
-            for (const auto& txin : tx->vin) {
-                const CTxMemPoolEntry* entry = Assert(node.mempool)->GetEntry(txin.prevout.hash);
-                if (entry && entry->IsDirty()) {
-                    throw JSONRPCError(RPC_VERIFY_ERROR, "Proposal targetting transaction with dirty dependencies");
-                }
-            }
-        }
-
-        const UniValue& data = request_params["data"];
-        if (!data.isStr()) {
-            throw JSONRPCError(RPC_TYPE_ERROR, "Missing data String key for proposal");
-        }
-
-        CBlock block_proposal;
-        if (!DecodeHexBlk(block_proposal, data.get_str())) {
-            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
-        }
-
-        const uint256 hash = block_proposal.GetHash();
-        const CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(hash);
-        if (pindex) {
-            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
-                return "duplicate";
-            }
-            if (pindex->nStatus & BLOCK_FAILED_MASK) {
-                return "duplicate-invalid";
-            }
-            return "duplicate-inconclusive";
-        }
-
-        CBlockIndex* const pindexPrev = chainman.ActiveChain().Tip();
-        // TestBlockValidity only supports blocks built on the current Tip
-        if (block_proposal.hashPrevBlock != pindexPrev->GetBlockHash()) {
-            return "inconclusive-not-best-prevblk";
-        }
-        BlockValidationState state;
-        chainman.TestBlockValidity(state, block_proposal, pindexPrev, GetAdjustedTime(), false, true);
-        return BIP22ValidationResult(state);
-    }
-
-    CBlock& block = blocktemplate->getBlock();
-    const uint64_t nTxFees = blocktemplate->getTxFees();
-
-    // Make sure this block will follow all rules sometimes skipped in TestBlockValidity such as BIP30
-    if (chainman.ActiveChain().Tip()->nHeight + 1 >= Params().GetConsensus().BIP30Height) {
-        const CCoinsViewCache view(&chainman.ActiveChainstate().CoinsTip());
-        BlockValidationState state_check_contextual;
-        if (!ContextualCheckBlock(block, state_check_contextual, view, Params().GetConsensus(), chainman.ActiveChain().Tip())) {
-            // ContextualCheckBlock providing a useful error string is a work in progress
-            throw JSONRPCError(RPC_VERIFY_ERROR, "Block violates fork specific rules (BIP30 or other). Please check the log.");
-        }
-    }
-
-    // The following rules are checked first by the assembler but also checked here to ensure that the GBT result is valid according to the current state.
-    // Particularly important when the chain tip may have changed mid-assembly, making a transaction no longer valid for the new tip.
-    BlockValidationState state_final_check;
-    if (!CheckBlock(block, state_final_check, Params().GetConsensus(), chainman.ActiveChainstate().Flags(), false, false)) {
-        throw JSONRPCError(RPC_VERIFY_ERROR, "Block does not pass final check. Please check the log.");
-    }
-
-    std::vector<std::string>rules_applied = blocktemplate->getRulesApplied();
-    if (setClientRules.count("!segwit")) rules_applied.push_back("!segwit");
-    rules_applied.push_back("csv");
-
-    // Add explicitly requested rules to the result
-    for (const std::string& rule : setClientRules) {
-        // Add rules that are not part of SUPPORTED_RULES to the result, if they are not already.
-        // This allows clients to signal support for softforks that are not listed in SUPPORTED_RULES.
-        if (SUPPORTED_RULES.find(rule) == SUPPORTED_RULES.end() && std::find(rules_applied.begin(), rules_applied.end(), rule) == rules_applied.end()) {
-            rules_applied.push_back(rule);
-        }
-    }
-
-    UniValue result = GetBlockTemplateResult(chainman.ActiveChainstate(), chainman.GetConsensus(),
-                                            block, nTxFees, rules_applied,
-                                            blocktemplate->getVBRequired(), *Assert(node.mempool));
-    result.pushKV("longpollid", chainman.ActiveChain().Tip()->GetBlockHash().ToString() + ToString(Assert(node.mempool)->GetTransactionsUpdated()));
-    return result;
-    */
-},
+}
     };
 }
 
@@ -864,52 +680,7 @@ static RPCHelpMan submitblock()
 {
     // BTCA: PoW is disabled.
     throw JSONRPCError(RPC_METHOD_DEPRECATED, "Proof-of-Work mining is disabled in Bitcoinall. submitblock is deprecated.");
-    /*
-    NodeContext& node = EnsureAnyNodeContext(request.context);
-    ChainstateManager& chainman = EnsureChainman(node);
-
-    std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
-    CBlock& block = *blockptr;
-    if (!DecodeHexBlk(block, request.params[0].get_str())) {
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
-    }
-
-    if (block.vtx.empty() || !block.vtx[0]->IsCoinBase()) {
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not start with a coinbase");
-    }
-
-    uint256 hash = block.GetHash();
-    bool new_block;
-    submitblock_StateCatcher sc(hash);
-    RegisterSharedValidationInterface(sc.GetWeak());
-    bool accepted = chainman.ProcessNewBlock(blockptr, true, true, &new_block);
-    UnregisterSharedValidationInterface(sc.GetWeak());
-    node.validation_signals->SyncWithValidationInterfaceQueue();
-    if (sc.found) {
-        if (sc.state.IsInvalid()) {
-            if (sc.state.GetResult() == BlockValidationResult::BLOCK_MUTATED) {
-                return "mutated";
-            }
-            return "invalid";
-        }
-        if (accepted && new_block) {
-            return NullUniValue;
-        }
-        return "duplicate";
-    }
-    if (accepted) {
-        if (chainman.ActiveChain().Tip()->GetBlockHash() != hash && // Not the new tip ...
-                chainman.m_blockman.LookupBlockIndex(block.hashPrevBlock) == nullptr) { // ... and not an orphan
-            // We accepted the block, but it is not the new tip, and it is not an orphan,
-            // then it must be a reorg.
-            return "accepted-still-old-tip";
-        }
-        return "accepted"; // This means we accepted the block, but it is an orphan.
-    }
-    // We didn't accept the block, we don't have a state for it, so we don't know why
-    return "rejected";
-    */
-},
+}
     };
 }
 
@@ -928,28 +699,8 @@ static RPCHelpMan submitheader()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    // BTCA: PoW is disabled.
     throw JSONRPCError(RPC_METHOD_DEPRECATED, "Proof-of-Work mining is disabled in Bitcoinall. submitheader is deprecated.");
-    /*
-    NodeContext& node = EnsureAnyNodeContext(request.context);
-    ChainstateManager& chainman = EnsureChainman(node);
-
-    CBlockHeader h;
-    if (!DecodeHexBlockHeader(h, request.params[0].get_str())) {
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block header decode failed");
-    }
-    BlockValidationState state;
-    chainman.ProcessNewBlockHeaders({h}, state, Params(), nullptr);
-    if (state.IsInvalid()) {
-        std::string strError = "invalid header: " + state.ToString();
-        throw JSONRPCError(RPC_VERIFY_ERROR, strError);
-    }
-    if (!chainman.ActiveChain().Contains(chainman.m_blockman.LookupBlockIndex(h.GetHash()))) {
-        throw JSONRPCError(RPC_VERIFY_ERROR, "header not accepted");
-    }
-    return NullUniValue;
-    */
-},
+}
     };
 }
 

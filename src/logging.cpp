@@ -9,7 +9,7 @@
 #include <util/fs.h>
 #include <util/string.h>
 #include <util/threadnames.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <array>
 #include <map>

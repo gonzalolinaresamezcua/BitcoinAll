@@ -19,7 +19,7 @@
 #include <uint256.h>
 #include <util/fs.h>
 #include <util/serfloat.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <algorithm>
 #include <cassert>

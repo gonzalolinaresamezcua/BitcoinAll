@@ -9,7 +9,7 @@
 #include <util/sock.h>
 #include <util/syserror.h>
 #include <util/threadinterrupt.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <memory>
 #include <stdexcept>

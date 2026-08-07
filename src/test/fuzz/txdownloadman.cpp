@@ -18,7 +18,7 @@
 #include <test/util/txmempool.h>
 #include <util/hasher.h>
 #include <util/rbf.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <txmempool.h>
 #include <validation.h>
 #include <validationinterface.h>

@@ -16,7 +16,7 @@
 #include <test/util/net.h>
 #include <test/util/setup_common.h>
 #include <test/util/validation.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validationinterface.h>
 
 #include <ios>

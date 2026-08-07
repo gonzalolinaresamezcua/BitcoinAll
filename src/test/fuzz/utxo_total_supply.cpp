@@ -15,7 +15,7 @@
 #include <test/util/mining.h>
 #include <test/util/setup_common.h>
 #include <util/chaintype.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 using node::BlockAssembler;

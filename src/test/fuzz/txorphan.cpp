@@ -17,7 +17,7 @@
 #include <txorphanage.h>
 #include <uint256.h>
 #include <util/check.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <cstdint>
 #include <memory>

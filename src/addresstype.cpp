@@ -15,8 +15,7 @@
 
 #include <cassert>
 #include <vector>
-#include <time.h>
-#include <string.h>
+#include <cstring>
 
 typedef std::vector<unsigned char> valtype;
 

@@ -16,7 +16,7 @@
 #include <test/util/setup_common.h>
 #include <util/asmap.h>
 #include <util/chaintype.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <cstdint>
 #include <optional>

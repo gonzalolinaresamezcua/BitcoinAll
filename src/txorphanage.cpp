@@ -8,7 +8,7 @@
 #include <logging.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <cassert>
 

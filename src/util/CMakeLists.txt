@@ -37,7 +37,8 @@ add_library(bitcoin_util STATIC EXCLUDE_FROM_ALL
   ../sync.cpp
 )
 
-target_include_directories(bitcoin_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Do not add src/util to the global include path: util/string.h and util/bitcoin_time.h
+# would shadow the system <string.h> and <time.h> headers.
 
 target_link_libraries(bitcoin_util
   PRIVATE

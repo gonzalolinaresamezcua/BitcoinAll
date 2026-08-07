@@ -7,7 +7,7 @@
 #include <node/warnings.h>
 #include <sync.h>
 #include <tinyformat.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 
 #include <algorithm>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 140" role="img" aria-label="Banner BitcoinAll 2026">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0a0014"/>
+      <stop offset="50%" stop-color="#12002b"/>
+      <stop offset="100%" stop-color="#0a0014"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f5ff"/>
+      <stop offset="50%" stop-color="#ff00aa"/>
+      <stop offset="100%" stop-color="#ffe600"/>
+    </linearGradient>
+    <filter id="hdrGlow">
+      <feGaussianBlur stdDeviation="2.5" result="h"/>
+      <feMerge><feMergeNode in="h"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="900" height="140" fill="url(#bg)" rx="12"/>
+  <rect x="1" y="1" width="898" height="138" rx="11" fill="none" stroke="#00f5ff" stroke-width="1" opacity="0.35"/>
+
+  <!-- scanlines -->
+  <g opacity="0.08">
+    <rect y="0" width="900" height="3" fill="#00f5ff"/>
+    <rect y="10" width="900" height="2" fill="#ff00aa"/>
+    <rect y="20" width="900" height="2" fill="#00f5ff"/>
+    <rect y="30" width="900" height="2" fill="#ff00aa"/>
+    <rect y="40" width="900" height="2" fill="#00f5ff"/>
+    <rect y="50" width="900" height="2" fill="#ff00aa"/>
+    <rect y="60" width="900" height="2" fill="#00f5ff"/>
+    <rect y="70" width="900" height="2" fill="#ff00aa"/>
+    <rect y="80" width="900" height="2" fill="#00f5ff"/>
+    <rect y="90" width="900" height="2" fill="#ff00aa"/>
+    <rect y="100" width="900" height="2" fill="#00f5ff"/>
+    <rect y="110" width="900" height="2" fill="#ff00aa"/>
+    <rect y="120" width="900" height="2" fill="#00f5ff"/>
+    <rect y="130" width="900" height="2" fill="#ff00aa"/>
+  </g>
+
+  <!-- decorative corners -->
+  <path d="M16 16 H50 M16 16 V50" stroke="#ff00aa" stroke-width="2" fill="none"/>
+  <path d="M884 16 H850 M884 16 V50" stroke="#00f5ff" stroke-width="2" fill="none"/>
+  <path d="M16 124 H50 M16 124 V90" stroke="#ffe600" stroke-width="2" fill="none"/>
+  <path d="M884 124 H850 M884 124 V90" stroke="#7b2fff" stroke-width="2" fill="none"/>
+
+  <text x="450" y="62" text-anchor="middle" font-family="monospace" font-size="42" font-weight="bold" fill="url(#title)" filter="url(#hdrGlow)">BITCOINALL CORE</text>
+  <text x="450" y="92" text-anchor="middle" font-family="monospace" font-size="16" fill="#00f5ff" letter-spacing="6">MONEDA DESCENTRALIZADA � BTCA � 2026</text>
+  <text x="450" y="118" text-anchor="middle" font-family="monospace" font-size="11" fill="#ff00aa" letter-spacing="3">PROOF OF UPTIME // DEV + AI // PARA TODO EL P�BLICO</text>
+</svg>

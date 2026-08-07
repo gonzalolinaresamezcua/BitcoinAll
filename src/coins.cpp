@@ -25,6 +25,20 @@ bool CCoinsView::HaveCoin(const COutPoint &outpoint) const
     return GetCoin(outpoint).has_value();
 }
 
+bool CCoinsView::GetUptime(const CKeyID& keyID, uint64_t& nUptime) const
+{
+    (void)keyID;
+    nUptime = 0;
+    return false;
+}
+
+bool CCoinsView::GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const
+{
+    (void)keyID;
+    nLastRewardedUptime = 0;
+    return false;
+}
+
 CCoinsViewBacked::CCoinsViewBacked(CCoinsView *viewIn) : base(viewIn) { }
 std::optional<Coin> CCoinsViewBacked::GetCoin(const COutPoint& outpoint) const { return base->GetCoin(outpoint); }
 bool CCoinsViewBacked::HaveCoin(const COutPoint &outpoint) const { return base->HaveCoin(outpoint); }
@@ -245,11 +259,33 @@ bool CCoinsViewCache::BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &ha
         }
     }
     hashBlock = hashBlockIn;
+
+    // BTCA: merge uptime batch from child cache
+    {
+        LOCK(m_uptime_mutex);
+        for (const auto& [key, val] : cursor.m_write_uptime) {
+            m_cache_uptime[key] = val;
+        }
+        for (const auto& [key, val] : cursor.m_write_last_rewarded_uptime) {
+            m_cache_last_rewarded_uptime[key] = val;
+        }
+        for (const CKeyID& key : cursor.m_delete_uptime) {
+            m_cache_uptime.erase(key);
+        }
+        for (const CKeyID& key : cursor.m_delete_last_rewarded_uptime) {
+            m_cache_last_rewarded_uptime.erase(key);
+        }
+    }
     return true;
 }
 
 bool CCoinsViewCache::Flush() {
     auto cursor{CoinsViewCacheCursor(cachedCoinsUsage, m_sentinel, cacheCoins, /*will_erase=*/true)};
+    {
+        LOCK(m_uptime_mutex);
+        cursor.m_write_uptime = std::move(m_cache_uptime);
+        cursor.m_write_last_rewarded_uptime = std::move(m_cache_last_rewarded_uptime);
+    }
     bool fOk = base->BatchWrite(cursor, hashBlock);
     if (fOk) {
         cacheCoins.clear();
@@ -262,6 +298,13 @@ bool CCoinsViewCache::Flush() {
 bool CCoinsViewCache::Sync()
 {
     auto cursor{CoinsViewCacheCursor(cachedCoinsUsage, m_sentinel, cacheCoins, /*will_erase=*/false)};
+    {
+        LOCK(m_uptime_mutex);
+        cursor.m_write_uptime = m_cache_uptime;
+        cursor.m_write_last_rewarded_uptime = m_cache_last_rewarded_uptime;
+        m_cache_uptime.clear();
+        m_cache_last_rewarded_uptime.clear();
+    }
     bool fOk = base->BatchWrite(cursor, hashBlock);
     if (fOk) {
         if (m_sentinel.second.Next() != &m_sentinel) {
@@ -344,6 +387,42 @@ void CCoinsViewCache::SanityCheck() const
     }
     assert(count_linked == count_flagged);
     assert(recomputed_usage == cachedCoinsUsage);
+}
+
+bool CCoinsViewCache::GetUptime(const CKeyID& keyID, uint64_t& nUptime) const
+{
+    LOCK(m_uptime_mutex);
+    const auto it = m_cache_uptime.find(keyID);
+    if (it != m_cache_uptime.end()) {
+        nUptime = it->second;
+        return true;
+    }
+    Assert(base);
+    return base->GetUptime(keyID, nUptime);
+}
+
+bool CCoinsViewCache::GetLastRewardedUptime(const CKeyID& keyID, uint64_t& nLastRewardedUptime) const
+{
+    LOCK(m_uptime_mutex);
+    const auto it = m_cache_last_rewarded_uptime.find(keyID);
+    if (it != m_cache_last_rewarded_uptime.end()) {
+        nLastRewardedUptime = it->second;
+        return true;
+    }
+    Assert(base);
+    return base->GetLastRewardedUptime(keyID, nLastRewardedUptime);
+}
+
+void CCoinsViewCache::SetUptime(const CKeyID& keyID, uint64_t nUptime)
+{
+    LOCK(m_uptime_mutex);
+    m_cache_uptime[keyID] = nUptime;
+}
+
+void CCoinsViewCache::SetLastRewardedUptime(const CKeyID& keyID, uint64_t nLastRewardedUptime)
+{
+    LOCK(m_uptime_mutex);
+    m_cache_last_rewarded_uptime[keyID] = nLastRewardedUptime;
 }
 
 static const size_t MIN_TRANSACTION_OUTPUT_WEIGHT = WITNESS_SCALE_FACTOR * ::GetSerializeSize(CTxOut());

@@ -5,7 +5,7 @@
 #ifndef BITCOIN_TEST_UTIL_TIME_H
 #define BITCOIN_TEST_UTIL_TIME_H
 
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 struct ElapseSteady {
     MockableSteadyClock::mock_time_point::duration t{MockableSteadyClock::INITIAL_MOCK_TIME};

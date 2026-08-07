@@ -9,7 +9,7 @@
 
 #include <logging.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #ifndef WIN32
 #include <sys/stat.h>

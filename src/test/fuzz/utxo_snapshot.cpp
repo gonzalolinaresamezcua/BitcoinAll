@@ -25,7 +25,7 @@
 #include <util/check.h>
 #include <util/fs.h>
 #include <util/result.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 #include <cstdint>

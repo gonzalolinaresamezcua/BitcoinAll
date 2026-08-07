@@ -25,7 +25,7 @@
 #include <util/exception.h>
 #include <util/fs.h>
 #include <util/fs_helpers.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #ifdef WIN32
 #include <shellapi.h>

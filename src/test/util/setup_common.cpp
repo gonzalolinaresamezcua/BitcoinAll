@@ -52,7 +52,7 @@
 #include <util/task_runner.h>
 #include <util/thread.h>
 #include <util/threadnames.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <util/vector.h>
 #include <validation.h>

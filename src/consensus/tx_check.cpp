@@ -16,14 +16,9 @@
 #include <util/strencodings.h>
 #include <serialize.h>
 #include <protocol.h>
-#include <node/protocol_version.h>
 #include <span>
 
-// BTCA: Define constants for reward and dust amounts
-// These should ideally be part of consensus params or a shared constants file
-// For now, defining them here for clarity.
-const CAmount BTCA_UPTIME_REWARD_AMOUNT = 100 * COIN; // 100 BTCA per reward unit
-const CAmount BTCA_MIN_DUST_OUTPUT_TO_SELF = 1; // 1 satoshi
+#include <consensus/btca.h>
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {

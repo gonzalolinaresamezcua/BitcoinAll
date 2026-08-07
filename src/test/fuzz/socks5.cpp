@@ -9,7 +9,7 @@
 #include <test/fuzz/util.h>
 #include <test/fuzz/util/net.h>
 #include <test/util/setup_common.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <cstdint>
 #include <string>

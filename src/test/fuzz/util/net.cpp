@@ -12,7 +12,7 @@
 #include <test/fuzz/util.h>
 #include <test/util/net.h>
 #include <util/sock.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <array>
 #include <cassert>

@@ -5,7 +5,7 @@
 #include <node/minisketchwrapper.h>
 
 #include <logging.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <minisketch.h>
 

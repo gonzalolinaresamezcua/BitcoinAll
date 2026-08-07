@@ -25,7 +25,7 @@
 #include <util/fs.h>
 #include <util/moneystr.h>
 #include <util/strencodings.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/vector.h>
 
 #include <utility>

@@ -72,7 +72,8 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
  */
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "Bitcoinall Genesis - Your New Timestamp Here - DD/Mon/YYYY Name on brink of something";
+    // Estilo Satoshi (The Times …) — BitcoinAll genesis, firmado Dev + AI
+    const char* pszTimestamp = "The Times 07/Aug/2026 BitcoinAll for all people on brink of decentralization Dev + AI";
     const CScript genesisOutputScript = CScript() << "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"_hex << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
@@ -87,10 +88,7 @@ public:
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 210000;
-        consensus.script_flag_exceptions.emplace( // BIP16 exception
-            uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), SCRIPT_VERIFY_NONE);
-        consensus.script_flag_exceptions.emplace( // Taproot exception
-            uint256S("0x0000000000000000000f14c35b2d841e986ab5441de8c585d5ffe55ea1e395ad"), SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS);
+        consensus.script_flag_exceptions.clear();
         consensus.BIP34Height = 0;
         consensus.BIP34Hash = uint256();
         consensus.BIP65Height = 0;
@@ -98,7 +96,7 @@ public:
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256::FromHex("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").value();
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -126,11 +124,11 @@ public:
         m_assumed_blockchain_size = 10;
         m_assumed_chain_state_size = 1;
 
-        uint32_t genesis_nTime = 1672531200;
+        uint32_t genesis_nTime = 1786122000; // 07/Aug/2026 17:00:00 UTC
         uint32_t genesis_nNonce = 0;
         uint32_t genesis_nBits = 0x1e0ffff0;
-        
-        genesis = CreateGenesisBlock(genesis_nTime, genesis_nNonce, genesis_nBits, 1, 0 * COIN);
+
+        genesis = CreateGenesisBlock(genesis_nTime, genesis_nNonce, genesis_nBits, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
 
         vSeeds.clear();
@@ -176,7 +174,7 @@ public:
         consensus.CSVHeight = 0;   
         consensus.SegwitHeight = 0; 
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256::FromHex("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").value();
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -254,7 +252,7 @@ public:
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256::FromHex("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").value();
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -333,7 +331,7 @@ public:
     {
         m_chain_type = ChainType::SIGNET;
         consensus.signet_blocks = true;
-        consensus.signet_challenge = Assert(options.challenge);
+        consensus.signet_challenge = options.challenge.value_or(std::vector<uint8_t>{});
 
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.script_flag_exceptions.clear();
@@ -344,7 +342,7 @@ public:
         consensus.CSVHeight = 0;   
         consensus.SegwitHeight = 0; 
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256::FromHex("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").value();
         consensus.nPowTargetSpacing = 5 * 60;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -422,7 +420,7 @@ public:
         consensus.CSVHeight = 0;   
         consensus.SegwitHeight = 0; 
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256::FromHex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").value();
         consensus.nPowTargetSpacing = 1;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -489,10 +487,11 @@ public:
         vFixedSeeds.clear(); 
         vSeeds.clear();
 
-        fDefaultConsistencyChecks = true;
-        m_is_mockable_chain = true;    
+        fDefaultConsistencyChecks = false;
+        m_is_mockable_chain = true;
+        consensus.fPowAllowMinDifficultyBlocks = true;
 
-        m_assumeutxo_data.clear(); 
+        m_assumeutxo_data.clear();
 
         chainTxData = ChainTxData{
             .nTime    = regtest_genesis_nTime,

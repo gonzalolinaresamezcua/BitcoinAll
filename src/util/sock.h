@@ -7,7 +7,7 @@
 
 #include <compat/compat.h>
 #include <util/threadinterrupt.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <chrono>
 #include <memory>

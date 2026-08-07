@@ -5,7 +5,7 @@
 
 #include <chain.h>
 #include <tinyformat.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 std::string CBlockFileInfo::ToString() const
 {

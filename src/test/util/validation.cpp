@@ -5,7 +5,7 @@
 #include <test/util/validation.h>
 
 #include <util/check.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 #include <validationinterface.h>
 

@@ -14,18 +14,17 @@
 #include <util/check.h>
 #include <util/moneystr.h>
 
-// BTCA: Include headers for time transaction validation
-#include <script/script.h>
+#include <consensus/btca.h>
+#include <addresstype.h>
+#include <policy/policy.h>
 #include <pubkey.h>
+#include <script/script.h>
+#include <serialize.h>
 #include <streams.h>
 #include <util/strencodings.h>
-#include <keyaddress.h>     // For PKHash
-#include <policy/policy.h> // For GetScriptForDestination
-#include <chainparams.h>   // For COIN and potentially BTCA specific constants
-
-// BTCA: Define constants for reward calculation (ideally from chainparams)
-const CAmount BTCA_UPTIME_REWARD_AMOUNT_CONSENSUS = 100 * COIN;
-const uint64_t BTCA_REWARD_INTERVAL_SECONDS_CONSENSUS = 24 * 60 * 60; // 24 hours
+#include <protocol.h>
+#include <node/protocol_version.h>
+#include <span>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -206,18 +205,18 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     CKeyID node_key_id_from_op_return;
     uint32_t session_uptime_from_op_return = 0;
 
-    if (!tx.vout.empty() && tx.vout[0].scriptPubKey.IsOpReturn()) {
+    if (!tx.vout.empty() && !tx.vout[0].scriptPubKey.empty() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
         const CScript& script = tx.vout[0].scriptPubKey;
         std::vector<unsigned char> data_op_return_payload;
         opcodetype opcode;
         CScript::const_iterator pc = script.begin();
         if (script.GetOp(pc, opcode) && opcode == OP_RETURN) {
             if (script.GetOp(pc, opcode, data_op_return_payload) && pc == script.end()) {
-                CDataStream ss(data_op_return_payload, SER_NETWORK, PROTOCOL_VERSION);
+                DataStream ss(std::span<const unsigned char>{data_op_return_payload});
                 std::string expected_marker = "BTCA_TIME";
-                std::string marker_str(expected_marker.size(), '\\0');
+                std::string marker_str(expected_marker.size(), '\0');
                 if (ss.size() >= expected_marker.size()) {
-                    ss.read(marker_str.data(), expected_marker.size());
+                    ss.read(std::span{(std::byte*)marker_str.data(), expected_marker.size()});
                     if (marker_str == expected_marker) {
                         // This is a BTCA_TIME transaction. Check if it has a reward.
                         // Basic structure validation (version, pubkey, extra data) is done in CheckTransaction.
@@ -229,7 +228,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                                 CPubKey pubkey_dummy;  // Already checked in CheckTransaction
                                 ss >> version_dummy; // Skip version
                                 std::vector<unsigned char> pubkey_data(CPubKey::COMPRESSED_SIZE);
-                                ss.read(pubkey_data.data(), pubkey_data.size());
+                                ss.read(std::span{(std::byte*)pubkey_data.data(), pubkey_data.size()});
                                 pubkey_dummy.Set(pubkey_data.begin(), pubkey_data.end());
                                 node_key_id_from_op_return = pubkey_dummy.GetID(); // Get KeyID
                                 ss >> session_uptime_from_op_return; // Get session uptime
@@ -276,11 +275,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         uint64_t rewardable_uptime_seconds = current_total_uptime_if_connected - last_rewarded_total_uptime;
         uint64_t expected_reward_units = 0;
 
-        if (rewardable_uptime_seconds >= BTCA_REWARD_INTERVAL_SECONDS_CONSENSUS) {
-            expected_reward_units = rewardable_uptime_seconds / BTCA_REWARD_INTERVAL_SECONDS_CONSENSUS;
+        if (rewardable_uptime_seconds >= BTCA_REWARD_INTERVAL_SECONDS) {
+            expected_reward_units = rewardable_uptime_seconds / BTCA_REWARD_INTERVAL_SECONDS;
         }
-        
-        CAmount expected_reward_value = expected_reward_units * BTCA_UPTIME_REWARD_AMOUNT_CONSENSUS;
+
+        CAmount expected_reward_value = expected_reward_units * BTCA_UPTIME_REWARD_AMOUNT;
 
         if (tx.vout[1].nValue != expected_reward_value) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-reward-amount-incorrect",

@@ -18,7 +18,7 @@
 #include <support/allocators/secure.h>
 #include <support/cleanse.h>
 #include <sync.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <array>
 #include <cmath>

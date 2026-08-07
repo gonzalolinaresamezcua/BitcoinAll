@@ -57,7 +57,7 @@
 #include <uint256.h>
 #include <util/check.h>
 #include <util/strencodings.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/trace.h>
 #include <validation.h>
 

@@ -4,7 +4,7 @@
 
 #include <bench/bench.h>
 
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 static void BenchTimeDeprecated(benchmark::Bench& bench)
 {

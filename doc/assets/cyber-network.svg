@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200" role="img" aria-label="Red P2P descentralizada">
+  <defs>
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f5ff" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#ff00aa" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#00f5ff" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="nodeGlow">
+      <feGaussianBlur stdDeviation="3" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- grid floor -->
+  <g stroke="#00f5ff" stroke-width="0.6" opacity="0.18">
+    <path d="M0 170 H360 M0 150 H360 M0 130 H360 M0 110 H360"/>
+    <path d="M40 90 V200 M100 90 V200 M160 90 V200 M220 90 V200 M280 90 V200 M320 90 V200"/>
+  </g>
+
+  <!-- connections -->
+  <g stroke="url(#lineGrad)" stroke-width="2" fill="none" opacity="0.85">
+    <path d="M180 70 L80 120 L60 165"/>
+    <path d="M180 70 L180 130 L120 175"/>
+    <path d="M180 70 L260 115 L300 165"/>
+    <path d="M180 70 L220 150 L240 175"/>
+    <path d="M80 120 L180 130 L260 115"/>
+    <path d="M120 175 L240 175"/>
+  </g>
+
+  <!-- pulse packets -->
+  <circle cx="130" cy="100" r="4" fill="#ffe600" filter="url(#nodeGlow)"/>
+  <circle cx="210" cy="108" r="4" fill="#00f5ff" filter="url(#nodeGlow)"/>
+  <circle cx="175" cy="145" r="4" fill="#ff00aa" filter="url(#nodeGlow)"/>
+
+  <!-- central hub -->
+  <circle cx="180" cy="70" r="22" fill="#12001f" stroke="#ffe600" stroke-width="3" filter="url(#nodeGlow)"/>
+  <text x="180" y="76" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#ffe600">�</text>
+
+  <!-- peer nodes -->
+  <g filter="url(#nodeGlow)">
+    <circle cx="80" cy="120" r="14" fill="#0d1b2a" stroke="#00f5ff" stroke-width="2"/>
+    <circle cx="180" cy="130" r="14" fill="#0d1b2a" stroke="#ff00aa" stroke-width="2"/>
+    <circle cx="260" cy="115" r="14" fill="#0d1b2a" stroke="#7b2fff" stroke-width="2"/>
+    <circle cx="60" cy="165" r="11" fill="#0d1b2a" stroke="#00f5ff" stroke-width="2"/>
+    <circle cx="120" cy="175" r="11" fill="#0d1b2a" stroke="#ffe600" stroke-width="2"/>
+    <circle cx="240" cy="175" r="11" fill="#0d1b2a" stroke="#ff00aa" stroke-width="2"/>
+    <circle cx="300" cy="165" r="11" fill="#0d1b2a" stroke="#7b2fff" stroke-width="2"/>
+  </g>
+
+  <text x="180" y="28" text-anchor="middle" font-family="monospace" font-size="13" fill="#00f5ff" letter-spacing="2">RED P2P // SIN BANCOS // SIN MINEROS</text>
+</svg>

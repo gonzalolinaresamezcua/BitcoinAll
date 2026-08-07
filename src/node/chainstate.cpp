@@ -18,7 +18,7 @@
 #include <uint256.h>
 #include <util/fs.h>
 #include <util/signalinterrupt.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <validation.h>
 

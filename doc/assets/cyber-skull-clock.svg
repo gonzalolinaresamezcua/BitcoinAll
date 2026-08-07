@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Calavera uptime ciberpunk">
+  <defs>
+    <linearGradient id="skullGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0e0ff"/>
+      <stop offset="100%" stop-color="#7b8cff"/>
+    </linearGradient>
+    <filter id="skullNeon">
+      <feGaussianBlur stdDeviation="2.2" result="s"/>
+      <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- clock ring -->
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#ff00aa" stroke-width="3" stroke-dasharray="12 8" opacity="0.7" filter="url(#skullNeon)"/>
+  <circle cx="100" cy="100" r="78" fill="#0a0014" stroke="#00f5ff" stroke-width="2"/>
+
+  <!-- skull -->
+  <ellipse cx="100" cy="92" rx="42" ry="46" fill="url(#skullGrad)" stroke="#00f5ff" stroke-width="1.5"/>
+  <ellipse cx="82" cy="88" rx="10" ry="14" fill="#0a0014"/>
+  <ellipse cx="118" cy="88" rx="10" ry="14" fill="#0a0014"/>
+  <ellipse cx="82" cy="88" rx="5" ry="7" fill="#00f5ff" opacity="0.8"/>
+  <ellipse cx="118" cy="88" rx="5" ry="7" fill="#ff00aa" opacity="0.8"/>
+  <path d="M88 108 Q100 118 112 108" fill="none" stroke="#0a0014" stroke-width="2"/>
+  <rect x="88" y="118" width="24" height="8" rx="2" fill="#0a0014"/>
+  <path d="M78 128 H122" stroke="#0a0014" stroke-width="3"/>
+  <path d="M84 128 V138 M92 128 V140 M100 128 V142 M108 128 V140 M116 128 V138" stroke="#0a0014" stroke-width="2"/>
+
+  <!-- clock hands -->
+  <line x1="100" y1="100" x2="100" y2="62" stroke="#ffe600" stroke-width="3" stroke-linecap="round"/>
+  <line x1="100" y1="100" x2="128" y2="108" stroke="#00f5ff" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="100" cy="100" r="4" fill="#ff00aa"/>
+
+  <text x="100" y="168" text-anchor="middle" font-family="monospace" font-size="10" fill="#ffe600" letter-spacing="1">TIEMPO = REWARD</text>
+  <text x="100" y="182" text-anchor="middle" font-family="monospace" font-size="9" fill="#ff00aa">BTCA_TIME TX</text>
+</svg>

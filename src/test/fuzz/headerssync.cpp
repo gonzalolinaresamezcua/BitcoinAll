@@ -7,7 +7,7 @@
 #include <test/util/setup_common.h>
 #include <uint256.h>
 #include <util/chaintype.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 #include <iterator>

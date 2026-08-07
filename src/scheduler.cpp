@@ -5,7 +5,7 @@
 #include <scheduler.h>
 
 #include <sync.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <cassert>
 #include <functional>

@@ -5,6 +5,7 @@
 
 #include <rpc/blockchain.h>
 
+#include <addresstype.h>
 #include <blockfilter.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -3404,8 +3405,8 @@ static RPCHelpMan getnodeconnectiontimes()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
-    CChainState& active_chainstate = chainman.ActiveChainstate();
-    const CCoinsViewCache* coins_view = &active_chainstate.CoinsTip();
+    Chainstate& active_chainstate = chainman.ActiveChainstate();
+    CCoinsViewCache& coins_view = active_chainstate.CoinsTip();
 
     std::string address_str = self.Arg<std::string>("address");
     CTxDestination dest = DecodeDestination(address_str);
@@ -3418,14 +3419,14 @@ static RPCHelpMan getnodeconnectiontimes()
     if (!pkhash) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not refer to a public key hash (PKHash). Only P2PKH or P2WPKH type addresses are supported for node identification.");
     }
-    CKeyID keyID = CKeyID(*pkhash);
+    CKeyID keyID{ToKeyID(*pkhash)};
 
     uint64_t accumulated_uptime = 0;
     uint64_t last_rewarded_uptime = 0;
 
     LOCK(cs_main);
-    coins_view->GetUptime(keyID, accumulated_uptime);
-    coins_view->GetLastRewardedUptime(keyID, last_rewarded_uptime);
+    coins_view.GetUptime(keyID, accumulated_uptime);
+    coins_view.GetLastRewardedUptime(keyID, last_rewarded_uptime);
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("key_id", keyID.ToString());

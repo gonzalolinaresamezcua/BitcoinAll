@@ -1,87 +1,139 @@
-BitcoinAll Core integration/staging tree
-=====================================
+<p align="center">
+  <img src="doc/assets/cyber-header.svg" alt="BitcoinAll Core — Banner ciberpunk 2026" width="100%"/>
+</p>
 
-@bitcoinall
-Moneda descentralizada para todo el publico
+<p align="center">
+  <img src="doc/assets/btca-coin.svg" alt="Moneda BTCA" width="220"/>
+</p>
 
-For an immediately usable, binary version of the BitcoinAll Core software, see
-@bitcoinall/en/download/.
+<p align="center">
+  <strong>Moneda descentralizada para todo el público</strong><br/>
+  <code>@bitcoinall</code> · <em>Proof of Uptime</em> · <em>Dev + AI</em> · 2026
+</p>
 
-What is BitcoinAll Core?
----------------------
+<p align="center">
+  <img src="https://img.shields.io/badge/consensus-Proof%20of%20Uptime-ff00aa?style=for-the-badge&labelColor=0a0014" alt="PoU"/>
+  <img src="https://img.shields.io/badge/ticker-BTCA-00f5ff?style=for-the-badge&labelColor=0a0014" alt="BTCA"/>
+  <img src="https://img.shields.io/badge/license-MIT-ffe600?style=for-the-badge&labelColor=0a0014" alt="MIT"/>
+  <img src="https://img.shields.io/badge/era-cyberpunk%202026-7b2fff?style=for-the-badge&labelColor=0a0014" alt="2026"/>
+</p>
 
-BitcoinAll Core connects to the Bitcoin peer-to-peer network to download and fully
-validate blocks and transactions. It also includes a wallet and graphical user
-interface, which can be optionally built.
+---
 
-Consensus
----------
+<table>
+<tr>
+<td width="33%" align="center">
+<img src="doc/assets/cyber-robot.svg" alt="Robot PoU" width="100%"/>
+<br/><sub><b>PoW desactivado.</b> Aquí premiamos uptime, no GPUs fundidas.</sub>
+</td>
+<td width="33%" align="center">
+<img src="doc/assets/cyber-network.svg" alt="Red P2P" width="100%"/>
+<br/><sub>Nodos conectados. Sin bancos. Sin intermediarios.</sub>
+</td>
+<td width="33%" align="center">
+<img src="doc/assets/cyber-skull-clock.svg" alt="Skull clock" width="120"/>
+<br/><sub>Tiempo online = recompensa. <code>BTCA_TIME</code> en acción.</sub>
+</td>
+</tr>
+</table>
 
-BitcoinAll uses **Proof of Uptime (PoU)** consensus. Instead of proof-of-work mining,
-participation and block rewards are tied to accumulated node connection uptime on the
-network. See `src/consensus/params.h` for the canonical consensus parameters.
+<p align="center">
+  <img src="doc/assets/cyber-hacker-cat.svg" alt="Gato hacker node kitten" width="240"/>
+</p>
 
-Further information about BitcoinAll Core is available in the [doc folder](/doc).
+> **Descarga binaria lista para usar:** [@bitcoinall/en/download/](https://github.com/bitcoinall)  
+> *El gato no mina. El gato permanece conectado. El gato gana.*
 
-License
--------
+---
 
-BitcoinAll Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/licenses/MIT.
+## ¿Qué es BitcoinAll Core?
 
-Development Process
--------------------
+BitcoinAll Core se conecta a la red peer-to-peer de BitcoinAll para descargar y validar completamente bloques y transacciones. Incluye wallet e interfaz gráfica (compilación opcional).
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable. [Tags](https://github.com/bitcoin/bitcoin/tags) are created
-regularly from release branches to indicate new official, stable release versions of BitcoinAll Core.
+```mermaid
+flowchart LR
+    A[🖥️ Nodo BTCA] -->|P2P| B[🌐 Red]
+    B --> C[⏱️ Uptime acumulado]
+    C --> D[💰 Recompensa PoU]
+    D --> E[📦 Bloque validado]
+    style A fill:#0a0014,stroke:#00f5ff,color:#00f5ff
+    style B fill:#12002b,stroke:#ff00aa,color:#ff00aa
+    style C fill:#0a0014,stroke:#ffe600,color:#ffe600
+    style D fill:#12002b,stroke:#7b2fff,color:#7b2fff
+    style E fill:#0a0014,stroke:#00f5ff,color:#00f5ff
+```
 
-The https://github.com/bitcoin-core/gui repository is used exclusively for the
-development of the GUI. Its master branch is identical in all monotree
-repositories. Release branches and tags do not exist, so please do not fork
-that repository unless it is for development reasons.
+---
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+## Consenso · Proof of Uptime (PoU)
 
-Testing
--------
+BitcoinAll usa **Proof of Uptime (PoU)**. En lugar de minería proof-of-work, la participación y las recompensas de bloque están ligadas al **tiempo de conexión acumulado** del nodo en la red.
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
+| Concepto | Detalle |
+|----------|---------|
+| **Ticker** | `BTCA` |
+| **Mecanismo** | Uptime de nodo, no hashrate |
+| **TX especial** | `BTCA_TIME` — marca tiempo online |
+| **PoW** | Desactivado (RIP ASICs, 2009–2026 💀) |
+| **Parámetros** | `src/consensus/params.h` |
 
-### Automated Testing
+<p align="center">
+  <img src="doc/assets/btca-coin.svg" alt="BTCA coin detail" width="140"/>
+</p>
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled during the generation of the build system) with: `ctest`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+Más información en la [carpeta doc](/doc).
 
-There are also [regression and integration tests](/test), written
-in Python.
-These tests can be run (if the [test dependencies](/test) are installed) with: `build/test/functional/test_runner.py`
-(assuming `build` is your build directory).
+---
 
-The CI (Continuous Integration) systems make sure that every pull request is built for Windows, Linux, and macOS,
-and that unit/sanity tests are run automatically.
+## Licencia
 
-### Manual Quality Assurance (QA) Testing
+BitcoinAll Core se distribuye bajo la licencia **MIT**. Ver [COPYING](COPYING) o https://opensource.org/licenses/MIT.
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+---
 
-Translations
-------------
+## Proceso de desarrollo
 
-Changes to translations as well as new translations can be submitted to
-[BitcoinAll Core's Transifex page]
+La rama `master` se compila y prueba regularmente (ver `doc/build-*.md`), pero no está garantizada como completamente estable. Las [tags](https://github.com/bitcoin/bitcoin/tags) marcan versiones oficiales estables.
 
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
+El repositorio https://github.com/bitcoin-core/gui es exclusivo para el desarrollo de la GUI.
 
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+Flujo de contribución: [CONTRIBUTING.md](CONTRIBUTING.md) · Notas para devs: [doc/developer-notes.md](doc/developer-notes.md).
+
+---
+
+## Testing
+
+El cuello de botella del desarrollo es la revisión y las pruebas. Sé paciente y ayuda probando PRs de otros — esto es software crítico para seguridad financiera.
+
+### Tests automatizados
+
+- **Unit tests:** [src/test/README.md](src/test/README.md) — ejecutar con `ctest`
+- **Funcionales / integración:** [test/](/test) — `build/test/functional/test_runner.py`
+- **CI:** compila en Windows, Linux y macOS en cada PR
+
+### QA manual
+
+Cambios grandes o de alto riesgo deben probarse por alguien distinto al autor. Incluye un plan de pruebas en la descripción del PR si no es trivial.
+
+---
+
+## Traducciones
+
+Cambios y nuevas traducciones vía [BitcoinAll Core's Transifex page].
+
+Se sincronizan periódicamente desde Transifex. Ver [translation process](doc/translation_process.md).
+
+**Importante:** no aceptamos cambios de traducción como PRs en GitHub (Transifex los sobrescribiría).
+
+---
+
+<p align="center">
+  <img src="doc/assets/cyber-network.svg" alt="Red descentralizada" width="360"/>
+</p>
+
+<p align="center">
+  <sub>
+    <code>// BITCOINALL :: BTCA :: UPTIME &gt; HASHRATE :: 2026 //</code><br/>
+    Hecho con neón, café y nodos que no se desconectan.
+  </sub>
+</p>

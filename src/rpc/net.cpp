@@ -27,7 +27,7 @@
 #include <util/chaintype.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <validation.h>
 

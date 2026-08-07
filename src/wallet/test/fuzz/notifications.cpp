@@ -24,7 +24,7 @@
 #include <uint256.h>
 #include <util/check.h>
 #include <util/result.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/context.h>

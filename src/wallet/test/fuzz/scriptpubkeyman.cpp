@@ -19,7 +19,7 @@
 #include <test/fuzz/util/descriptor.h>
 #include <test/util/setup_common.h>
 #include <util/check.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <wallet/scriptpubkeyman.h>

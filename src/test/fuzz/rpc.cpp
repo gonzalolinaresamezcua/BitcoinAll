@@ -22,7 +22,7 @@
 #include <univalue.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <algorithm>
 #include <cassert>

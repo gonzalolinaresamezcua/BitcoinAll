@@ -6,7 +6,7 @@
 #include <netbase.h>
 #include <test/util/logging.h>
 #include <test/util/setup_common.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <boost/test/unit_test.hpp>
 

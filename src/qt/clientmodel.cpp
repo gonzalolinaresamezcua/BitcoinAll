@@ -20,7 +20,7 @@
 #include <net.h>
 #include <netbase.h>
 #include <util/threadnames.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 #include <stdint.h>

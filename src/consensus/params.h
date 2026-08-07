@@ -122,6 +122,9 @@ struct Params {
      */
     uint256 powLimit;
     int64_t nPowTargetSpacing;
+    int64_t nPowTargetTimespan{14 * 24 * 60 * 60};
+    bool fPowAllowMinDifficultyBlocks{false};
+    bool enforce_BIP94{false};
 
     // BTCA: Designated block proposer for non-PoW consensus (e.g., for regtest)
     CKeyID designatedBlockProposerKeyID; // KeyID of the designated proposer
@@ -131,6 +134,11 @@ struct Params {
     std::chrono::seconds PowTargetSpacing() const
     {
         return std::chrono::seconds{nPowTargetSpacing};
+    }
+
+    int DifficultyAdjustmentInterval() const
+    {
+        return static_cast<int>(nPowTargetTimespan / nPowTargetSpacing);
     }
     
     /** The best chain should have at least this much work */

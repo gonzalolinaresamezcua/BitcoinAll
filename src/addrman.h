@@ -10,7 +10,7 @@
 #include <netgroup.h>
 #include <protocol.h>
 #include <streams.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <cstdint>
 #include <memory>

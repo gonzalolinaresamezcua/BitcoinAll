@@ -23,7 +23,7 @@
 #include <rpc/server.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/threadnames.h>
 
 #include <univalue.h>

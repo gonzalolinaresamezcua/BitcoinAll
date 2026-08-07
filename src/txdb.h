@@ -26,8 +26,8 @@ class COutPoint; // Defined in primitives/outpoint.h, usually included via other
 class uint256;   // Defined in uint256.h, usually included via other headers
 
 // BTCA: Database prefixes for connection time tracking
-static const char DB_UPTIME = 'u';
-static const char DB_LAST_REWARDED_UPTIME = 'l';
+static constexpr uint8_t DB_UPTIME{'u'};
+static constexpr uint8_t DB_LAST_REWARDED_UPTIME{'l'};
 
 //! -dbbatchsize default (bytes)
 static const int64_t nDefaultDbBatchSize = 16 << 20;

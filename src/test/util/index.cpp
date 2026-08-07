@@ -7,7 +7,7 @@
 #include <index/base.h>
 #include <util/check.h>
 #include <util/signalinterrupt.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 void IndexWaitSynced(const BaseIndex& index, const util::SignalInterrupt& interrupt)
 {

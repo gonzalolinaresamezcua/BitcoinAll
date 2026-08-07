@@ -27,7 +27,7 @@
 #include <primitives/transaction.h>
 #include <util/moneystr.h>
 #include <util/signalinterrupt.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <validation.h>
 
 #include <algorithm>

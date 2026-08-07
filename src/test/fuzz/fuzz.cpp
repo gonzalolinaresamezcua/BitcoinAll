@@ -13,7 +13,7 @@
 #include <util/check.h>
 #include <util/fs.h>
 #include <util/sock.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <algorithm>
 #include <csignal>

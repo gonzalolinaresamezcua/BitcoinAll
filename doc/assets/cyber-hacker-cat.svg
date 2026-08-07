@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" role="img" aria-label="Gato hacker ciberpunk">
+  <defs>
+    <linearGradient id="hoodie" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1f0033"/>
+      <stop offset="100%" stop-color="#0a0014"/>
+    </linearGradient>
+    <filter id="catGlow">
+      <feGaussianBlur stdDeviation="2" result="c"/>
+      <feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- terminal window -->
+  <rect x="12" y="8" width="216" height="56" rx="6" fill="#05050f" stroke="#00f5ff" stroke-width="1.5"/>
+  <circle cx="26" cy="20" r="4" fill="#ff5f57"/>
+  <circle cx="40" cy="20" r="4" fill="#febc2e"/>
+  <circle cx="54" cy="20" r="4" fill="#28c840"/>
+  <text x="24" y="40" font-family="monospace" font-size="9" fill="#00f5ff">&gt; ./bitcoind --uptime-mode</text>
+  <text x="24" y="54" font-family="monospace" font-size="9" fill="#ff00aa">[OK] recompensa desbloqueada =1
+=�</text>
+
+  <!-- hoodie -->
+  <path d="M50 72 L70 48 L120 58 L170 48 L190 72 V170 H50 Z" fill="url(#hoodie)" stroke="#7b2fff" stroke-width="2"/>
+
+  <!-- cat ears -->
+  <path d="M72 58 L62 34 L88 50 Z" fill="#1f0033" stroke="#ff00aa" stroke-width="2"/>
+  <path d="M168 58 L178 34 L152 50 Z" fill="#1f0033" stroke="#ff00aa" stroke-width="2"/>
+
+  <!-- face -->
+  <ellipse cx="120" cy="108" rx="46" ry="40" fill="#c9a0dc" stroke="#00f5ff" stroke-width="1.5"/>
+  <ellipse cx="102" cy="104" rx="8" ry="11" fill="#0a0014"/>
+  <ellipse cx="138" cy="104" rx="8" ry="11" fill="#0a0014"/>
+  <ellipse cx="103" cy="102" rx="3" ry="5" fill="#00f5ff" filter="url(#catGlow)"/>
+  <ellipse cx="139" cy="102" rx="3" ry="5" fill="#00f5ff" filter="url(#catGlow)"/>
+  <path d="M108 118 L120 124 L132 118" fill="none" stroke="#ff00aa" stroke-width="2"/>
+  <path d="M100 112 L94 110 M140 112 L146 110" stroke="#0a0014" stroke-width="1.5"/>
+
+  <!-- visor glasses -->
+  <rect x="86" y="96" width="68" height="14" rx="7" fill="#00f5ff" opacity="0.25" stroke="#00f5ff"/>
+
+  <!-- paws on keyboard -->
+  <rect x="64" y="158" width="112" height="28" rx="4" fill="#0a0a12" stroke="#ffe600" stroke-width="1.5"/>
+  <rect x="72" y="166" width="10" height="8" rx="1" fill="#2b2d42" stroke="#00f5ff"/>
+  <rect x="86" y="166" width="10" height="8" rx="1" fill="#2b2d42" stroke="#00f5ff"/>
+  <rect x="100" y="166" width="10" height="8" rx="1" fill="#ff00aa"/>
+  <rect x="114" y="166" width="10" height="8" rx="1" fill="#2b2d42" stroke="#00f5ff"/>
+  <rect x="128" y="166" width="10" height="8" rx="1" fill="#2b2d42" stroke="#00f5ff"/>
+  <rect x="142" y="166" width="10" height="8" rx="1" fill="#2b2d42" stroke="#00f5ff"/>
+  <ellipse cx="78" cy="154" rx="14" ry="10" fill="#c9a0dc" stroke="#7b2fff"/>
+  <ellipse cx="162" cy="154" rx="14" ry="10" fill="#c9a0dc" stroke="#7b2fff"/>
+
+  <text x="120" y="196" text-anchor="middle" font-family="monospace" font-size="9" fill="#ffe600">NODE KITTEN v2026.08</text>
+</svg>

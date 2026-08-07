@@ -11,7 +11,7 @@
 #include <policy/truc_policy.h>
 #include <txmempool.h>
 #include <util/check.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/translation.h>
 #include <validation.h>
 

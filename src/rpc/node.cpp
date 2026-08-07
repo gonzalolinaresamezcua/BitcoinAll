@@ -24,7 +24,7 @@
 #include <univalue.h>
 #include <util/any.h>
 #include <util/check.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 #include <stdint.h>
 #ifdef HAVE_MALLOC_INFO

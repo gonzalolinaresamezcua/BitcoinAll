@@ -7,7 +7,7 @@
 
 #include <policy/packages.h>
 #include <txmempool.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 
 namespace node {
 struct NodeContext;

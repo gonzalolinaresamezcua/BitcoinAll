@@ -16,6 +16,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
+#include <consensus/btca_uptime.h>
 #include <consensus/validation.h>
 #include <cuckoocache.h>
 #include <flatfile.h>
@@ -59,7 +60,7 @@
 #include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/time.h>
+#include <util/bitcoin_time.h>
 #include <util/trace.h>
 #include <util/translation.h>
 #include <validationinterface.h>
@@ -2688,6 +2689,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             blockundo.vtxundo.emplace_back();
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
+        if (!tx.IsCoinBase()) {
+            ApplyBtcaUptimeFromTransaction(tx, view);
+        }
     }
     const auto time_3{SteadyClock::now()};
     m_chainman.time_connect += time_3 - time_2;

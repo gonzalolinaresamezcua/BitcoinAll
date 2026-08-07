@@ -12,7 +12,7 @@
 #include <primitives/transaction.h> // for CTransactionRef
 #include <stdint.h>                 // for int64_t
 #include <uint256.h>                // for uint256
-#include <util/time.h>              // for MillisecondsDouble
+#include <util/bitcoin_time.h>              // for MillisecondsDouble
 
 #include <memory>   // for unique_ptr, shared_ptr
 #include <optional> // for optional
