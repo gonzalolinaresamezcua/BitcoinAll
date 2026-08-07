@@ -42,6 +42,7 @@
 </p>
 
 > **Repositorio oficial:** [github.com/gonzalolinaresamezcua/BitcoinAll](https://github.com/gonzalolinaresamezcua/BitcoinAll)  
+> **Incluye integrado:** nodo `bitcoind` + **explorador web** + **billetera web** (carpetas `explorer-app/` y `wallet-app/`).  
 > **Instalación:** compila desde el código ([doc/build-unix.md](doc/build-unix.md)) o revisa [Releases](https://github.com/gonzalolinaresamezcua/BitcoinAll/releases).  
 > *El gato no mina. El gato permanece conectado. El gato gana.*
 
@@ -54,6 +55,8 @@ BitcoinAll **no tiene web de descarga propia**. El único sitio oficial del proy
 | Opción | Enlace |
 |--------|--------|
 | **Compilar en Linux** | [doc/build-unix.md](doc/build-unix.md) |
+| **Explorador blockchain** | carpeta [`explorer-app/`](explorer-app/) → `http://127.0.0.1:9336` |
+| **Billetera web** | carpeta [`wallet-app/`](wallet-app/) → `http://127.0.0.1:9335` |
 | **Releases (binarios)** | [github.com/gonzalolinaresamezcua/BitcoinAll/releases](https://github.com/gonzalolinaresamezcua/BitcoinAll/releases) |
 | **Issues y soporte** | [github.com/gonzalolinaresamezcua/BitcoinAll/issues](https://github.com/gonzalolinaresamezcua/BitcoinAll/issues) |
 
@@ -64,6 +67,7 @@ No uses enlaces tipo `@bitcoinall/en/download/` ni dominios de terceros: no pert
 ## Manual de uso en Ubuntu
 
 Guía paso a paso para compilar, arrancar el nodo, crear wallet y participar en la red PoU.  
+El repositorio incluye **explorador** y **billetera web** listos para usar en Ubuntu (sin instalar nada extra salvo Python 3).  
 Repositorio oficial: **solo** [github.com/gonzalolinaresamezcua/BitcoinAll](https://github.com/gonzalolinaresamezcua/BitcoinAll).
 
 ### 1. Requisitos
@@ -100,6 +104,13 @@ Binarios generados:
 | Nodo | `build/bin/bitcoind` |
 | CLI | `build/bin/bitcoin-cli` |
 | Wallet (opcional) | `build/bin/bitcoin-wallet` |
+
+**Apps web integradas** (se conectan al nodo por RPC; no sustituyen a `bitcoind`):
+
+| App | Carpeta | URL local | Para qué sirve |
+|-----|---------|-----------|----------------|
+| **Explorador** | `explorer-app/` | http://127.0.0.1:9336 | Ver bloques, transacciones, direcciones y cadena |
+| **Billetera** | `wallet-app/` | http://127.0.0.1:9335 | Saldo, enviar/recibir, direcciones `btca1...`, firmar mensajes |
 
 ### 4. Directorio de datos
 
@@ -195,24 +206,44 @@ Guarda la dirección que devuelve el comando.
 
 El uptime no se “activa” solo con crear la dirección: debe quedar registrado en cadena mediante transacciones `BTCA_TIME` validadas por el consenso.
 
-### 9. Explorer y wallet web (opcional)
+### 9. Explorador y billetera web integrados
 
-Con el nodo en marcha, puedes usar las apps locales incluidas en el repo:
+BitcoinAll Core trae **dos interfaces web locales** en el propio repositorio. Ambas hablan con tu nodo por RPC (cookie en `data/.cookie`); **primero debe estar corriendo `bitcoind`**.
+
+#### Explorador blockchain (`explorer-app/`)
+
+- Consultar altura, último bloque y estado de la cadena
+- Buscar bloques, transacciones y direcciones `btca1...`
+- Navegar el historial sin usar solo la línea de comandos
 
 ```bash
-# Explorador de bloques → http://127.0.0.1:9336
-./explorer-app/run.sh start
+./explorer-app/run.sh start    # → http://127.0.0.1:9336
+./explorer-app/run.sh status
+./explorer-app/run.sh stop
+```
 
-# Wallet web → http://127.0.0.1:9335
+#### Billetera web (`wallet-app/`)
+
+- Ver saldo y transacciones de la wallet cargada en el nodo
+- Generar direcciones de recepción
+- Enviar BTCA y firmar mensajes con direcciones del proyecto
+
+```bash
+./wallet-app/run.sh start      # → http://127.0.0.1:9335
+./wallet-app/run.sh status
+./wallet-app/run.sh stop
+```
+
+Por defecto usa la wallet `primera` y el datadir `./data`. Variables opcionales:
+
+```bash
+export BITCOINALL_DATADIR="$(pwd)/data"
+export BITCOINALL_WALLET="primera"
+./explorer-app/run.sh start
 ./wallet-app/run.sh start
 ```
 
-Parar:
-
-```bash
-./explorer-app/run.sh stop
-./wallet-app/run.sh stop
-```
+> **Nota:** son apps locales (`127.0.0.1`); no se publican en internet ni sustituyen la wallet del nodo (`bitcoin-cli` / `bitcoin-wallet`).
 
 ### 10. Resolución de problemas
 
@@ -250,7 +281,12 @@ $BTCA_CLI getnodeconnectiontimes "btca1..."
 ## ¿Qué es BitcoinAll Core?
 
 
-BitcoinAll Core se conecta a la red peer-to-peer de BitcoinAll para descargar y validar completamente bloques y transacciones. Incluye wallet e interfaz gráfica (compilación opcional).
+BitcoinAll Core se conecta a la red peer-to-peer de BitcoinAll para descargar y validar completamente bloques y transacciones. Incluye:
+
+- **Nodo** (`bitcoind` / `bitcoin-cli`) — consenso PoU y red P2P
+- **Explorador web** ([`explorer-app/`](explorer-app/)) — explorar la blockchain en el navegador
+- **Billetera web** ([`wallet-app/`](wallet-app/)) — gestionar BTCA sin depender solo de la terminal
+- **GUI Qt** (compilación opcional con `-DBUILD_GUI=ON`)
 
 ```mermaid
 flowchart LR
