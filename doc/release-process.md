@@ -1,6 +1,11 @@
 Release Process
 ====================
 
+> **BitcoinAll:** las releases se publican en
+> https://github.com/gonzalolinaresamezcua/BitcoinAll/releases.
+> Los pasos que mencionan bitcoincore.org, Transifex o repositorios
+> `bitcoin-core/*` son herencia del upstream y **no aplican** a este proyecto.
+
 ## Branch updates
 
 ### Before every release candidate
