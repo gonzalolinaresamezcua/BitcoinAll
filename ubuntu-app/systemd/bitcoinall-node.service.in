@@ -1,0 +1,25 @@
+[Unit]
+Description=BitcoinAll node (bitcoind) — red P2P PoU
+Documentation=https://github.com/gonzalolinaresamezcua/BitcoinAll
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__BITCOINALL_USER__
+Group=__BITCOINALL_USER__
+ExecStartPre=/bin/mkdir -p __BITCOINALL_DATADIR__
+ExecStartPre=/bin/sh -c 'test -f __BITCOINALL_DATADIR__/bitcoin.conf || cp __BITCOINALL_REPO__/bitcoin.conf.example __BITCOINALL_DATADIR__/bitcoin.conf'
+ExecStart=__BITCOINALL_HOME__/bin/bitcoind -datadir=__BITCOINALL_DATADIR__ -server -txindex=1 -wallet=primera -listen=1 -printtoconsole
+ExecStop=__BITCOINALL_HOME__/bin/bitcoin-cli -datadir=__BITCOINALL_DATADIR__ stop
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=600
+TimeoutStopSec=600
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bitcoinall-node
+
+[Install]
+WantedBy=multi-user.target

@@ -52,6 +52,7 @@ load_wallet
 
 BITCOINALL_DATADIR="$BITCOINALL_DATADIR" "$REPO/wallet-app/run.sh" start
 BITCOINALL_DATADIR="$BITCOINALL_DATADIR" "$REPO/explorer-app/run.sh" start
+BITCOINALL_DATADIR="$BITCOINALL_DATADIR" "$REPO/node-app/run.sh" start
 
 echo ""
 echo "══════════════════════════════════════════"
@@ -60,6 +61,7 @@ echo "════════════════════════�
 echo " Nodo RPC:  $BITCOINALL_DATADIR"
 echo " Wallet:    http://127.0.0.1:9335"
 echo " Explorer:  http://127.0.0.1:9336"
+echo " Nodos P2P: http://127.0.0.1:9337"
 if [[ -x "$ROOT/bin/bitcoin-qt" ]]; then
   echo " GUI Qt:    $ROOT/bin/bitcoin-qt -datadir=$BITCOINALL_DATADIR"
 fi

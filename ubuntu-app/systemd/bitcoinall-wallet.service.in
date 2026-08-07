@@ -1,0 +1,26 @@
+[Unit]
+Description=BitcoinAll wallet web (puerto 9335)
+Documentation=https://github.com/gonzalolinaresamezcua/BitcoinAll
+After=network-online.target bitcoinall-node.service
+Wants=network-online.target
+Requires=bitcoinall-node.service
+
+[Service]
+Type=simple
+User=__BITCOINALL_USER__
+Group=__BITCOINALL_USER__
+WorkingDirectory=__BITCOINALL_REPO__/wallet-app
+Environment=BITCOINALL_DATADIR=__BITCOINALL_DATADIR__
+Environment=BITCOINALL_WALLET=primera
+Environment=BITCOINALL_WALLET_BIND=127.0.0.1
+Environment=BITCOINALL_WALLET_PORT=9335
+ExecStartPre=__BITCOINALL_HOME__/scripts/ensure-venv.sh wallet
+ExecStart=__BITCOINALL_REPO__/wallet-app/.venv/bin/python __BITCOINALL_REPO__/wallet-app/server.py
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bitcoinall-wallet
+
+[Install]
+WantedBy=multi-user.target

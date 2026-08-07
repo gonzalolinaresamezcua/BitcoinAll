@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitcoinAll Nodos</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">🌐</div>
+        <div>
+          <h1>BitcoinAll Nodos</h1>
+          <p id="node-status" class="subtitle">Conectando al nodo local…</p>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat">
+          <span class="label">Conectados</span>
+          <span id="stat-peers" class="value">—</span>
+        </div>
+        <div class="stat">
+          <span class="label">Entrantes</span>
+          <span id="stat-in" class="value">—</span>
+        </div>
+        <div class="stat">
+          <span class="label">Salientes</span>
+          <span id="stat-out" class="value">—</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="summary-grid" id="summary-cards"></section>
+
+    <div class="toolbar">
+      <label class="auto-refresh">
+        <input type="checkbox" id="auto-refresh" checked>
+        Actualizar cada 10 s
+      </label>
+      <button type="button" id="refresh-btn" class="btn secondary btn-sm">Actualizar ahora</button>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="peers">Peers conectados</button>
+      <button class="tab" data-tab="local">Este nodo</button>
+      <button class="tab" data-tab="banned">Baneados</button>
+      <button class="tab" data-tab="detail">Detalle peer</button>
+    </nav>
+
+    <main>
+      <section id="panel-peers" class="panel active">
+        <h2>Peers en la red P2P</h2>
+        <p id="peers-hint" class="hint">Lista de nodos conectados a tu bitcoind. Haz clic en uno para ver todos sus datos.</p>
+        <div id="peers-empty" class="empty-state hidden">
+          <p class="empty-title">Ningún peer conectado</p>
+          <p class="empty-text">Tu nodo está activo pero aún no tiene vecinos. Asegúrate de que <code>-listen=1</code> esté en <code>bitcoin.conf</code> y que otros nodos puedan alcanzar tu IP/puerto P2P (8333).</p>
+        </div>
+        <div id="peers-table" class="table-wrap"></div>
+      </section>
+
+      <section id="panel-local" class="panel">
+        <h2>Información de este nodo</h2>
+        <dl class="info-grid" id="local-info"></dl>
+        <h2>Interfaces de red</h2>
+        <div id="networks-table" class="table-wrap"></div>
+      </section>
+
+      <section id="panel-banned" class="panel">
+        <h2>Direcciones baneadas</h2>
+        <div id="banned-table" class="table-wrap"></div>
+      </section>
+
+      <section id="panel-detail" class="panel">
+        <div id="peer-detail">
+          <p class="hint">Selecciona un peer en la pestaña «Peers conectados» para ver su ficha completa.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Solo localhost · Monitor P2P BitcoinAll ·
+      <a href="http://127.0.0.1:9335" class="footer-link">Wallet</a> ·
+      <a href="http://127.0.0.1:9336" class="footer-link">Explorer</a>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

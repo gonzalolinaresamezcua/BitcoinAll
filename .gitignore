@@ -13,6 +13,10 @@
 /explorer-app/explorer.log
 /explorer-app/explorer.pid
 /explorer-app/__pycache__/
+/node-app/.venv/
+/node-app/node.log
+/node-app/node.pid
+/data/
 /ubuntu-app/.build/
 /ubuntu-app/bin/
 /ubuntu-app/lib/

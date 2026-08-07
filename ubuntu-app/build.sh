@@ -19,14 +19,20 @@ cmake -S "$REPO" -B "$BUILD_DIR" \
   -DWITH_ZMQ=ON \
   -DENABLE_WALLET=ON
 
-cmake --build "$BUILD_DIR" --target bitcoind bitcoin-cli bitcoin-qt bitcoin-wallet bitcoin-tx -j"$JOBS"
-cmake --install "$BUILD_DIR" || {
-  echo "AVISO: install parcial; copiando binarios…"
+cmake --build "$BUILD_DIR" -j"$JOBS"
+install_bins() {
   mkdir -p "$ROOT/bin"
-  cp -a "$BUILD_DIR/bin/bitcoind" "$BUILD_DIR/bin/bitcoin-cli" \
-        "$BUILD_DIR/bin/bitcoin-qt" "$BUILD_DIR/bin/bitcoin-wallet" \
-        "$ROOT/bin/" 2>/dev/null || true
+  shopt -s nullglob
+  for bin in "$BUILD_DIR"/bin/bitcoin-* "$BUILD_DIR"/bin/bitcoind; do
+    [[ -f "$bin" ]] && cp -a "$bin" "$ROOT/bin/"
+  done
 }
+if ! cmake --install "$BUILD_DIR"; then
+  echo "AVISO: install parcial; copiando binarios desde .build/bin/…"
+  install_bins
+fi
+# Asegurar GUI y nodo aunque install omita algún target
+install_bins
 
 [[ -f "$ROOT/bitcoin.conf.example" ]] || cp "$REPO/bitcoin.conf.example" "$ROOT/bitcoin.conf.example"
 

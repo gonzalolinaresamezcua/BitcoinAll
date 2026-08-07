@@ -4,3 +4,6 @@
 server=1
 txindex=1
 wallet=primera
+listen=1
+minrelaytxfee=0.01
+incrementalrelayfee=0.01
