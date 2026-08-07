@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_DIR="$ROOT/wallet-app"
 VENV="$APP_DIR/.venv"
+LOG="$APP_DIR/wallet.log"
 
 export BITCOINALL_DATADIR="${BITCOINALL_DATADIR:-$ROOT/data}"
 export BITCOINALL_WALLET="${BITCOINALL_WALLET:-primera}"
@@ -27,40 +28,67 @@ is_running() {
   curl -sf "${URL}/api/status" >/dev/null 2>&1
 }
 
+ensure_venv() {
+  if [[ ! -d "$VENV" ]]; then
+    python3 -m venv "$VENV"
+  fi
+  if ! "$VENV/bin/python" -c "import flask" 2>/dev/null; then
+    "$VENV/bin/pip" install -q -r "$APP_DIR/requirements.txt"
+  fi
+}
+
+start_background() {
+  ensure_venv
+  stop_wallet
+  nohup "$VENV/bin/python" "$APP_DIR/server.py" >>"$LOG" 2>&1 &
+  for _ in $(seq 1 15); do
+    if is_running; then
+      echo "Wallet lista → ${URL}"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "ERROR: wallet no respondió. Log: $LOG"
+  tail -10 "$LOG" 2>/dev/null || true
+  exit 1
+}
+
+start_foreground() {
+  ensure_venv
+  stop_wallet
+  echo "Abre en el navegador: ${URL}"
+  exec "$VENV/bin/python" "$APP_DIR/server.py"
+}
+
 case "${1:-start}" in
   stop)
     stop_wallet
     echo "Wallet detenida (puerto ${BITCOINALL_WALLET_PORT})."
-    exit 0
     ;;
   restart)
     stop_wallet
+    start_background
     ;;
   status)
     if is_running; then
       echo "Wallet activa → ${URL}"
-      exit 0
+    else
+      echo "Wallet no responde en ${URL}"
+      exit 1
     fi
-    echo "Wallet no responde en ${URL}"
-    exit 1
+    ;;
+  fg|foreground)
+    start_foreground
     ;;
   start)
     if is_running; then
       echo "Wallet ya está corriendo → ${URL}"
       exit 0
     fi
-    stop_wallet
+    start_background
     ;;
   *)
-    echo "Uso: $0 [start|stop|restart|status]"
+    echo "Uso: $0 [start|stop|restart|status|fg]"
     exit 1
     ;;
 esac
-
-if [[ ! -d "$VENV" ]]; then
-  python3 -m venv "$VENV"
-  "$VENV/bin/pip" install -q -r "$APP_DIR/requirements.txt"
-fi
-
-echo "Abre en el navegador: ${URL}"
-exec "$VENV/bin/python" "$APP_DIR/server.py"

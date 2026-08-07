@@ -12,7 +12,12 @@
 /explorer-app/.venv/
 /explorer-app/explorer.log
 /explorer-app/explorer.pid
-/data/
+/explorer-app/__pycache__/
+/ubuntu-app/.build/
+/ubuntu-app/bin/
+/ubuntu-app/lib/
+/ubuntu-app/share/
+/ubuntu-app/data
 
 # Only ignore unexpected patches
 *.patch
