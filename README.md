@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>Moneda descentralizada para todo el público</strong><br/>
-  <code>@bitcoinall</code> · <em>Proof of Uptime</em> · <em>Dev + AI</em> · 2026
+  <a href="https://github.com/gonzalolinaresamezcua/BitcoinAll">github.com/gonzalolinaresamezcua/BitcoinAll</a> · <em>Proof of Uptime</em> · <em>Dev + AI</em> · 2026
 </p>
 
 <p align="center">
@@ -41,10 +41,23 @@
   <img src="doc/assets/cyber-hacker-cat.svg" alt="Gato hacker node kitten" width="240"/>
 </p>
 
-> **Descarga binaria lista para usar:** [@bitcoinall/en/download/](https://github.com/bitcoinall)  
+> **Repositorio oficial:** [github.com/gonzalolinaresamezcua/BitcoinAll](https://github.com/gonzalolinaresamezcua/BitcoinAll)  
+> **Instalación:** compila desde el código ([doc/build-unix.md](doc/build-unix.md)) o revisa [Releases](https://github.com/gonzalolinaresamezcua/BitcoinAll/releases).  
 > *El gato no mina. El gato permanece conectado. El gato gana.*
 
 ---
+
+## Descarga e instalación
+
+BitcoinAll **no tiene web de descarga propia**. El único sitio oficial del proyecto es este repositorio en GitHub.
+
+| Opción | Enlace |
+|--------|--------|
+| **Compilar en Linux** | [doc/build-unix.md](doc/build-unix.md) |
+| **Releases (binarios)** | [github.com/gonzalolinaresamezcua/BitcoinAll/releases](https://github.com/gonzalolinaresamezcua/BitcoinAll/releases) |
+| **Issues y soporte** | [github.com/gonzalolinaresamezcua/BitcoinAll/issues](https://github.com/gonzalolinaresamezcua/BitcoinAll/issues) |
+
+No uses enlaces tipo `@bitcoinall/en/download/` ni dominios de terceros: no pertenecen a este proyecto.
 
 ## ¿Qué es BitcoinAll Core?
 
@@ -87,15 +100,17 @@ Más información en la [carpeta doc](/doc).
 
 ## Licencia
 
-BitcoinAll Core se distribuye bajo la licencia **MIT**. Ver [COPYING](COPYING) o https://opensource.org/licenses/MIT.
+BitcoinAll Core se distribuye bajo la licencia **MIT**.
+
+Copyright (c) 2025-2026 Bitcoin All Developers. Ver [COPYING](COPYING) o https://opensource.org/licenses/MIT.
 
 ---
 
 ## Proceso de desarrollo
 
-La rama `master` se compila y prueba regularmente (ver `doc/build-*.md`), pero no está garantizada como completamente estable. Las [tags](https://github.com/bitcoin/bitcoin/tags) marcan versiones oficiales estables.
+La rama `master` se compila y prueba regularmente (ver `doc/build-*.md`), pero no está garantizada como completamente estable. Las [releases](https://github.com/gonzalolinaresamezcua/BitcoinAll/releases) marcan versiones estables.
 
-El repositorio https://github.com/bitcoin-core/gui es exclusivo para el desarrollo de la GUI.
+Repositorio oficial: https://github.com/gonzalolinaresamezcua/BitcoinAll
 
 Flujo de contribución: [CONTRIBUTING.md](CONTRIBUTING.md) · Notas para devs: [doc/developer-notes.md](doc/developer-notes.md).
 
@@ -119,11 +134,7 @@ Cambios grandes o de alto riesgo deben probarse por alguien distinto al autor. I
 
 ## Traducciones
 
-Cambios y nuevas traducciones vía [BitcoinAll Core's Transifex page].
-
-Se sincronizan periódicamente desde Transifex. Ver [translation process](doc/translation_process.md).
-
-**Importante:** no aceptamos cambios de traducción como PRs en GitHub (Transifex los sobrescribiría).
+Las traducciones se gestionan en el repositorio. Abre un issue o pull request en [GitHub](https://github.com/gonzalolinaresamezcua/BitcoinAll) si quieres colaborar.
 
 ---
 

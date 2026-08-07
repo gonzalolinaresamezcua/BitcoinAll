@@ -30,13 +30,19 @@ BitcoinAll and how to run the unit tests, functional tests, and fuzz tests.
 
 There are many open issues of varying difficulty waiting to be fixed.
 If you're looking for somewhere to start contributing, check out the
-[good first issue](https://github.com/bitcoinall/bitcoinall/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+[good first issue](https://github.com/gonzalolinaresamezcua/BitcoinAll/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
 list or changes that are
-[up for grabs](https://github.com/bitcoinall/bitcoinall/issues?utf8=%E2%9C%93&q=label%3A%22Up+for+grabs%22).
+[up for grabs](https://github.com/gonzalolinaresamezcua/BitcoinAll/issues?q=is%3Aopen+is%3Aissue+label%3A%22Up+for+grabs%22).
 Some of them might no longer be applicable. So if you are interested, but
 unsure, you might want to leave a comment on the issue first.
 
-You may also participate in the [BitcoinAll PR Review Club](https://bitcoinall.reviews/).
+Communication Channels
+----------------------
+
+Discussion about BitcoinAll development happens on GitHub issues and pull
+requests at https://github.com/gonzalolinaresamezcua/BitcoinAll.
+
+There is no project website; GitHub is the only official channel.
 
 ### Good First Issue Label
 
@@ -50,26 +56,6 @@ You do not need to request permission to start working on an issue. However,
 you are encouraged to leave a comment if you are planning to work on it. This
 will help other contributors monitor which issues are actively being addressed
 and is also an effective way to request assistance if and when you need it.
-
-Communication Channels
-----------------------
-
-Most communication about BitcoinAll development happens on IRC, in the
-`#bitcoinall-dev` channel on Libera Chat. The easiest way to participate on IRC is
-with the web client, [web.libera.chat](https://web.libera.chat/#bitcoinall-dev). Chat
-history logs can be found
-on [https://www.erisian.com.au/bitcoinall-dev/](https://www.erisian.com.au/bitcoinall-dev/)
-and [https://gnusha.org/bitcoinall-dev/](https://gnusha.org/bitcoinall-dev/).
-
-Discussion about codebase improvements happens in GitHub issues and pull
-requests.
-
-The developer
-[mailing list](https://groups.google.com/g/bitcoindev)
-should be used to discuss complicated or controversial consensus or P2P protocol changes before working on
-a patch set.
-Archives can be found on [https://gnusha.org/pi/bitcoindev/](https://gnusha.org/pi/bitcoindev/).
-
 
 Contributor Workflow
 --------------------
@@ -232,7 +218,7 @@ pull request to pull request.
 
 When a pull request conflicts with the target branch, you may be asked to rebase it on top of the current target branch.
 
-    git fetch https://github.com/bitcoinall/bitcoinall  # Fetch the latest upstream commit
+    git fetch https://github.com/gonzalolinaresamezcua/BitcoinAll  # Fetch the latest upstream commit
     git rebase FETCH_HEAD  # Rebuild commits on top of the new base
 
 This project aims to have a clean git history, where code changes are only made in non-merge commits. This simplifies
@@ -436,6 +422,8 @@ https://github.com/gonzalolinaresamezcua/BitcoinAll/bitcoinall-maintainer-tools#
 
 Copyright
 ---------
+
+Copyright (c) 2025-2026 Bitcoin All Developers. See [COPYING](COPYING).
 
 By contributing to this repository, you agree to license your work under the
 MIT license unless specified otherwise in `contrib/debian/copyright` or at
