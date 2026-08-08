@@ -15,6 +15,7 @@
 #include <util/moneystr.h>
 
 #include <consensus/btca.h>
+#include <consensus/btca_reward.h>
 #include <addresstype.h>
 #include <policy/policy.h>
 #include <pubkey.h>
@@ -165,6 +166,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
+        if (tx.vin[i].prevout.IsNull()) continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
         const CTxOut &prevout = coin.out;
@@ -175,122 +177,49 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
 {
-    // are the actual inputs available?
-    if (!inputs.HaveInputs(tx)) {
-        return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent",
-                         strprintf("%s: inputs missing/spent", __func__));
-    }
+    BtcaTimeTxData btca_data;
+    const bool is_btca_time = ParseBtcaTimeTransaction(tx, btca_data);
 
     CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); ++i) {
-        const COutPoint &prevout = tx.vin[i].prevout;
-        const Coin& coin = inputs.AccessCoin(prevout);
-        assert(!coin.IsSpent());
-
-        // If prev is coinbase, check that it's matured
-        if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
-            return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
-                strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
+    if (!is_btca_time) {
+        if (!inputs.HaveInputs(tx)) {
+            return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent",
+                             strprintf("%s: inputs missing/spent", __func__));
         }
 
-        // Check for negative or overflow input values
-        nValueIn += coin.out.nValue;
-        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
-        }
-    }
+        for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+            const COutPoint &prevout = tx.vin[i].prevout;
+            const Coin& coin = inputs.AccessCoin(prevout);
+            assert(!coin.IsSpent());
 
-    // BTCA: Logic for Time Transactions
-    bool is_btca_time_tx_with_reward = false;
-    CKeyID node_key_id_from_op_return;
-    uint32_t session_uptime_from_op_return = 0;
+            if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
+                return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
+                    strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
+            }
 
-    if (!tx.vout.empty() && !tx.vout[0].scriptPubKey.empty() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
-        const CScript& script = tx.vout[0].scriptPubKey;
-        std::vector<unsigned char> data_op_return_payload;
-        opcodetype opcode;
-        CScript::const_iterator pc = script.begin();
-        if (script.GetOp(pc, opcode) && opcode == OP_RETURN) {
-            if (script.GetOp(pc, opcode, data_op_return_payload) && pc == script.end()) {
-                DataStream ss(std::span<const unsigned char>{data_op_return_payload});
-                std::string expected_marker = "BTCA_TIME";
-                std::string marker_str(expected_marker.size(), '\0');
-                if (ss.size() >= expected_marker.size()) {
-                    ss.read(std::span{(std::byte*)marker_str.data(), expected_marker.size()});
-                    if (marker_str == expected_marker) {
-                        // This is a BTCA_TIME transaction. Check if it has a reward.
-                        // Basic structure validation (version, pubkey, extra data) is done in CheckTransaction.
-                        // Here we only care if it's structured as a reward one (size == 3) for specific checks.
-                        if (tx.vout.size() == 3) {
-                             // Deserialize pubkey again to get KeyID for validation against reward output
-                            try {
-                                uint8_t version_dummy; // Already checked in CheckTransaction
-                                CPubKey pubkey_dummy;  // Already checked in CheckTransaction
-                                ss >> version_dummy; // Skip version
-                                std::vector<unsigned char> pubkey_data(CPubKey::COMPRESSED_SIZE);
-                                ss.read(std::span{(std::byte*)pubkey_data.data(), pubkey_data.size()});
-                                pubkey_dummy.Set(pubkey_data.begin(), pubkey_data.end());
-                                node_key_id_from_op_return = pubkey_dummy.GetID(); // Get KeyID
-                                ss >> session_uptime_from_op_return; // Get session uptime
-                                is_btca_time_tx_with_reward = true;
-                            } catch (const std::ios_base::failure&) {
-                                // This should not happen if CheckTransaction passed, but as a safeguard:
-                                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-opreturn-corrupted-in-checktxinputs");
-                            }
-                        }
-                    }
-                }
+            nValueIn += coin.out.nValue;
+            if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
             }
         }
     }
 
     CAmount value_out_for_fee_check = tx.GetValueOut();
 
-    if (is_btca_time_tx_with_reward) {
-        // For BTCA time transactions with rewards, the reward amount is not part of nValueIn.
-        // It's "minted" by this transaction.
-        // value_out_for_fee_check should only include non-reward outputs (OP_RETURN and dust).
-        if (tx.vout.size() != 3) {
-             // Should have been caught by CheckTransaction, but defensive check.
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-reward-unexpected-vout-size");
-        }
-        value_out_for_fee_check = tx.vout[0].nValue + tx.vout[2].nValue; // OP_RETURN (0) + Dust
+    if (is_btca_time) {
+        // PoU minting uses a marker input; reward and dust are emitted by consensus rules.
+        value_out_for_fee_check = 0;
 
-        // Validate the reward amount based on uptime state
-        uint64_t previously_accumulated_uptime = 0;
-        inputs.GetUptime(node_key_id_from_op_return, previously_accumulated_uptime);
-
-        uint64_t last_rewarded_total_uptime = 0;
-        inputs.GetLastRewardedUptime(node_key_id_from_op_return, last_rewarded_total_uptime);
-
-        uint64_t current_total_uptime_if_connected = previously_accumulated_uptime + session_uptime_from_op_return;
-        
-        if (current_total_uptime_if_connected < last_rewarded_total_uptime) {
-             // This could happen due to clock issues or reorgs where uptime was already rewarded for a higher value.
-             // Or if session_uptime_from_op_return is negative, which should not happen.
-             // Treat as no reward due.
-             current_total_uptime_if_connected = last_rewarded_total_uptime;
-        }
-
-        uint64_t rewardable_uptime_seconds = current_total_uptime_if_connected - last_rewarded_total_uptime;
-        uint64_t expected_reward_units = 0;
-
-        if (rewardable_uptime_seconds >= BTCA_REWARD_INTERVAL_SECONDS) {
-            expected_reward_units = rewardable_uptime_seconds / BTCA_REWARD_INTERVAL_SECONDS;
-        }
-
-        CAmount expected_reward_value = expected_reward_units * BTCA_UPTIME_REWARD_AMOUNT;
-
-        if (tx.vout[1].nValue != expected_reward_value) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-reward-amount-incorrect",
-                strprintf("Incorrect reward amount. Expected %s, got %s", FormatMoney(expected_reward_value), FormatMoney(tx.vout[1].nValue)));
-        }
-
-        // Destination check already done in CheckTransaction, but can be re-verified for safety
-        CScript expected_reward_script = GetScriptForDestination(PKHash(node_key_id_from_op_return));
-        if (tx.vout[1].scriptPubKey != expected_reward_script) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-reward-destination-mismatch-in-checktxinputs",
-                "Reward output pays to incorrect destination (re-check)");
+        if (btca_data.has_reward) {
+            const CAmount expected_reward = CalculateExpectedBtcaReward(btca_data, inputs);
+            if (expected_reward <= 0) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-no-reward-due",
+                    "No PoU reward is due for this uptime and peer count");
+            }
+            if (tx.vout[1].nValue != expected_reward) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-btca-time-tx-reward-amount-incorrect",
+                    strprintf("Incorrect reward amount. Expected %s, got %s", FormatMoney(expected_reward), FormatMoney(tx.vout[1].nValue)));
+            }
         }
     }
 

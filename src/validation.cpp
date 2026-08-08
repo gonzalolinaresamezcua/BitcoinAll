@@ -17,6 +17,7 @@
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/btca_uptime.h>
+#include <consensus/btca_reward.h>
 #include <consensus/validation.h>
 #include <cuckoocache.h>
 #include <flatfile.h>
@@ -787,18 +788,20 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTransaction
     }
 
+    const bool is_btca_time = IsBtcaTimeTransaction(tx);
+
     // Coinbase is only valid in a block, not as a loose transaction
     if (tx.IsCoinBase())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "coinbase");
 
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
-    if (m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.permit_bare_multisig, m_pool.m_opts.dust_relay_feerate, reason)) {
+    if (!is_btca_time && m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.permit_bare_multisig, m_pool.m_opts.dust_relay_feerate, reason)) {
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, reason);
     }
 
     // Transactions smaller than 65 non-witness bytes are not relayed to mitigate CVE-2017-12842.
-    if (::GetSerializeSize(TX_NO_WITNESS(tx)) < MIN_STANDARD_TX_NONWITNESS_SIZE)
+    if (!is_btca_time && ::GetSerializeSize(TX_NO_WITNESS(tx)) < MIN_STANDARD_TX_NONWITNESS_SIZE)
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "tx-size-small");
 
     // Only accept nLockTime-using transactions that can be mined in the next
@@ -818,15 +821,16 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     // Check for conflicts with in-memory transactions
-    for (const CTxIn &txin : tx.vin)
-    {
-        const CTransaction* ptxConflicting = m_pool.GetConflictTx(txin.prevout);
-        if (ptxConflicting) {
-            if (!args.m_allow_replacement) {
-                // Transaction conflicts with a mempool tx, but we're not allowing replacements in this context.
-                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bip125-replacement-disallowed");
+    if (!is_btca_time) {
+        for (const CTxIn &txin : tx.vin)
+        {
+            const CTransaction* ptxConflicting = m_pool.GetConflictTx(txin.prevout);
+            if (ptxConflicting) {
+                if (!args.m_allow_replacement) {
+                    return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bip125-replacement-disallowed");
+                }
+                ws.m_conflicts.insert(ptxConflicting->GetHash());
             }
-            ws.m_conflicts.insert(ptxConflicting->GetHash());
         }
     }
 
@@ -834,24 +838,20 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     const CCoinsViewCache& coins_cache = m_active_chainstate.CoinsTip();
     // do all inputs exist?
-    for (const CTxIn& txin : tx.vin) {
-        if (!coins_cache.HaveCoinInCache(txin.prevout)) {
-            coins_to_uncache.push_back(txin.prevout);
-        }
-
-        // Note: this call may add txin.prevout to the coins cache
-        // (coins_cache.cacheCoins) by way of FetchCoin(). It should be removed
-        // later (via coins_to_uncache) if this tx turns out to be invalid.
-        if (!m_view.HaveCoin(txin.prevout)) {
-            // Are inputs missing because we already have the tx?
-            for (size_t out = 0; out < tx.vout.size(); out++) {
-                // Optimistically just do efficient check of cache for outputs
-                if (coins_cache.HaveCoinInCache(COutPoint(hash, out))) {
-                    return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-known");
-                }
+    if (!is_btca_time) {
+        for (const CTxIn& txin : tx.vin) {
+            if (!coins_cache.HaveCoinInCache(txin.prevout)) {
+                coins_to_uncache.push_back(txin.prevout);
             }
-            // Otherwise assume this might be an orphan tx for which we just haven't seen parents yet
-            return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent");
+
+            if (!m_view.HaveCoin(txin.prevout)) {
+                for (size_t out = 0; out < tx.vout.size(); out++) {
+                    if (coins_cache.HaveCoinInCache(COutPoint(hash, out))) {
+                        return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-known");
+                    }
+                }
+                return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent");
+            }
         }
     }
 
@@ -881,12 +881,12 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if (m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view)) {
+    if (!is_btca_time && m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
 
     // Check for non-standard witnesses.
-    if (tx.HasWitness() && m_pool.m_opts.require_standard && !IsWitnessStandard(tx, m_view)) {
+    if (!is_btca_time && tx.HasWitness() && m_pool.m_opts.require_standard && !IsWitnessStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_WITNESS_MUTATED, "bad-witness-nonstandard");
     }
 
@@ -896,6 +896,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // during reorgs to ensure COINBASE_MATURITY is still met.
     bool fSpendsCoinbase = false;
     for (const CTxIn &txin : tx.vin) {
+        if (txin.prevout.IsNull()) continue;
         const Coin &coin = m_view.AccessCoin(txin.prevout);
         if (coin.IsCoinBase()) {
             fSpendsCoinbase = true;
@@ -1942,15 +1943,12 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
-
-    CAmount nSubsidy = 50 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
-    return nSubsidy;
+    (void)consensusParams;
+    // Genesis distributes the initial 50 BTCA; all further emission is via PoU (BTCA_TIME).
+    if (nHeight == 0) {
+        return 50 * COIN;
+    }
+    return 0;
 }
 
 CoinsViews::CoinsViews(DBParams db_params, CoinsViewOptions options)
@@ -2104,7 +2102,7 @@ void Chainstate::InvalidBlockFound(CBlockIndex* pindex, const BlockValidationSta
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
 {
     // mark inputs spent
-    if (!tx.IsCoinBase()) {
+    if (!tx.IsCoinBase() && !IsBtcaTimeTransaction(tx)) {
         txundo.vprevout.reserve(tx.vin.size());
         for (const CTxIn &txin : tx.vin) {
             txundo.vprevout.emplace_back();
@@ -2629,6 +2627,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
         if (!tx.IsCoinBase())
         {
+            const bool is_btca_time = IsBtcaTimeTransaction(tx);
+
             CAmount txfee = 0;
             TxValidationState tx_state;
             if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
@@ -2645,18 +2645,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 break;
             }
 
-            // Check that transaction is BIP68 final
-            // BIP68 lock checks (as opposed to nLockTime checks) must
-            // be in ConnectBlock because they require the UTXO set
-            prevheights.resize(tx.vin.size());
-            for (size_t j = 0; j < tx.vin.size(); j++) {
-                prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
-            }
+            if (!is_btca_time) {
+                // Check that transaction is BIP68 final
+                prevheights.resize(tx.vin.size());
+                for (size_t j = 0; j < tx.vin.size(); j++) {
+                    prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
+                }
 
-            if (!SequenceLocks(tx, nLockTimeFlags, prevheights, *pindex)) {
-                state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-nonfinal",
-                              "contains a non-BIP68-final transaction " + tx.GetHash().ToString());
-                break;
+                if (!SequenceLocks(tx, nLockTimeFlags, prevheights, *pindex)) {
+                    state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-nonfinal",
+                                  "contains a non-BIP68-final transaction " + tx.GetHash().ToString());
+                    break;
+                }
             }
         }
 
@@ -2670,7 +2670,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             break;
         }
 
-        if (!tx.IsCoinBase())
+        if (!tx.IsCoinBase() && !IsBtcaTimeTransaction(tx))
         {
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */

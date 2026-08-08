@@ -14,6 +14,8 @@
 #include <coins.h>
 #include <common/args.h>
 #include <consensus/amount.h>
+#include <consensus/btca.h>
+#include <consensus/btca_reward.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <core_io.h>
@@ -30,6 +32,7 @@
 #include <net_processing.h>
 #include <node/blockstorage.h>
 #include <node/context.h>
+#include <node/pou_peers.h>
 #include <node/transaction.h>
 #include <node/utxo_snapshot.h>
 #include <node/warnings.h>
@@ -3382,6 +3385,93 @@ return RPCHelpMan{
 }
 
 // BTCA: New RPC for node connection times
+static RPCHelpMan getpoustatus()
+{
+    return RPCHelpMan{"getpoustatus",
+                "\nReturns PoU participation status for a BTCA address, including session uptime,\n"
+                "connected peers, attested peers, and expected reward under current rules.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The BTCA address (P2PKH or P2WPKH) for the node."},
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR_HEX, "key_id", "The KeyID of the node (hex)"},
+                        {RPCResult::Type::NUM, "session_uptime_seconds", "Current session uptime since node start"},
+                        {RPCResult::Type::NUM, "accumulated_uptime_seconds", "On-chain accumulated uptime"},
+                        {RPCResult::Type::NUM, "last_rewarded_total_uptime_seconds", "Uptime total at last reward"},
+                        {RPCResult::Type::NUM, "peer_count", "Effective peer count used for inflation scaling (includes self)"},
+                        {RPCResult::Type::NUM, "connected_peers", "Number of active P2P connections"},
+                        {RPCResult::Type::NUM, "attested_peers", "Peers that announced PoU identities via P2P"},
+                        {RPCResult::Type::NUM, "scaled_reward_interval_seconds", "Required uptime per 100 BTCA unit at current peer count"},
+                        {RPCResult::Type::STR_AMOUNT, "expected_reward", "Reward that would be paid on the next valid claim"},
+                        {RPCResult::Type::BOOL, "welcome_pending", "True if the one-time 50 BTCA welcome bonus is still due"},
+                    }
+                },
+                RPCExamples{
+                    HelpExampleCli("getpoustatus", "\"myaddress\"")
+            + HelpExampleRpc("getpoustatus", "\"myaddress\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    Chainstate& active_chainstate = chainman.ActiveChainstate();
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    const CConnman& connman = EnsureConnman(node);
+
+    std::string address_str = self.Arg<std::string>("address");
+    CTxDestination dest = DecodeDestination(address_str);
+    if (!IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BTCA address");
+    }
+
+    CKeyID keyID;
+    if (const PKHash* pkhash = std::get_if<PKHash>(&dest)) {
+        keyID = ToKeyID(*pkhash);
+    } else if (const WitnessV0KeyHash* wit = std::get_if<WitnessV0KeyHash>(&dest)) {
+        keyID = CKeyID{uint160{*wit}};
+    } else {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not refer to a public key hash");
+    }
+
+    const int64_t session_start = node.m_session_start_time.load();
+    const uint32_t session_uptime = session_start > 0
+        ? static_cast<uint32_t>(std::max<int64_t>(0, GetTime() - session_start))
+        : 0;
+    const int connected = connman.GetNodeCount(ConnectionDirection::Both);
+    const uint16_t peer_count = static_cast<uint16_t>(std::clamp(connected + 1, int(BTCA_MIN_PEER_COUNT), int(BTCA_MAX_PEER_COUNT)));
+
+    uint64_t accumulated_uptime = 0;
+    uint64_t last_rewarded_uptime = 0;
+
+    LOCK(cs_main);
+    CCoinsViewCache& coins_view = active_chainstate.CoinsTip();
+    coins_view.GetUptime(keyID, accumulated_uptime);
+    coins_view.GetLastRewardedUptime(keyID, last_rewarded_uptime);
+
+    BtcaTimeTxData preview;
+    preview.key_id = keyID;
+    preview.session_uptime = session_uptime;
+    preview.peer_count = peer_count;
+    preview.has_reward = true;
+    const CAmount expected_reward = CalculateExpectedBtcaReward(preview, coins_view);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("key_id", keyID.ToString());
+    result.pushKV("session_uptime_seconds", session_uptime);
+    result.pushKV("accumulated_uptime_seconds", accumulated_uptime);
+    result.pushKV("last_rewarded_total_uptime_seconds", last_rewarded_uptime);
+    result.pushKV("peer_count", peer_count);
+    result.pushKV("connected_peers", connected);
+    result.pushKV("attested_peers", static_cast<int>(ListAnnouncedPouPeerKeyIDs().size()));
+    result.pushKV("scaled_reward_interval_seconds", GetBtcaScaledRewardInterval(peer_count));
+    result.pushKV("expected_reward", ValueFromAmount(expected_reward));
+    result.pushKV("welcome_pending", last_rewarded_uptime == 0);
+    return result;
+},
+    };
+}
+
 static RPCHelpMan getnodeconnectiontimes()
 {
     return RPCHelpMan{"getnodeconnectiontimes",
@@ -3406,7 +3496,6 @@ static RPCHelpMan getnodeconnectiontimes()
 {
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     Chainstate& active_chainstate = chainman.ActiveChainstate();
-    CCoinsViewCache& coins_view = active_chainstate.CoinsTip();
 
     std::string address_str = self.Arg<std::string>("address");
     CTxDestination dest = DecodeDestination(address_str);
@@ -3425,6 +3514,7 @@ static RPCHelpMan getnodeconnectiontimes()
     uint64_t last_rewarded_uptime = 0;
 
     LOCK(cs_main);
+    CCoinsViewCache& coins_view = active_chainstate.CoinsTip();
     coins_view.GetUptime(keyID, accumulated_uptime);
     coins_view.GetLastRewardedUptime(keyID, last_rewarded_uptime);
 
@@ -3473,6 +3563,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"hidden", &waitforblockheight},
         {"hidden", &syncwithvalidationinterfacequeue},
         {"blockchain", &getnodeconnectiontimes},
+        {"blockchain", &getpoustatus},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

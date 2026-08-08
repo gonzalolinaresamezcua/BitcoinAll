@@ -2086,7 +2086,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     if (node.scheduler) {
         // PoU uptime transactions are created via RPC while wallet integration matures.
-        LogPrintf("BTCA: PoU consensus active. Use createwallet and generatetoaddress to participate.\n");
+        LogPrintf("BTCA: PoU consensus active. Use createwallet, announcepou, and submitpouclaim to participate.\n");
     }
 
     return true;

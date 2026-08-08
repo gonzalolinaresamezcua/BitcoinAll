@@ -5,6 +5,8 @@
 
 #include <net_processing.h>
 
+#include <node/pou_peers.h>
+
 #include <addrman.h>
 #include <arith_uint256.h>
 #include <banman.h>
@@ -43,6 +45,7 @@
 #include <policy/policy.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <pubkey.h>
 #include <protocol.h>
 #include <random.h>
 #include <scheduler.h>
@@ -1632,6 +1635,7 @@ void PeerManagerImpl::FinalizeNode(const CNode& node)
         LOCK(m_tx_download_mutex);
         m_txdownloadman.DisconnectedPeer(nodeid);
     }
+    RemovePouPeerAnnouncements(nodeid);
     if (m_txreconciliation) m_txreconciliation->ForgetPeer(nodeid);
     m_num_preferred_download_peers -= state->fPreferredDownload;
     m_peers_downloading_from -= (!state->vBlocksInFlight.empty());
@@ -4755,6 +4759,17 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             LOCK(tx_relay->m_tx_inventory_mutex);
             tx_relay->m_send_mempool = true;
         }
+        return;
+    }
+
+    if (msg_type == NetMsgType::POUANNOUNCE) {
+        std::vector<unsigned char> pubkey_data(CPubKey::COMPRESSED_SIZE);
+        vRecv >> pubkey_data;
+        if (pubkey_data.size() != CPubKey::COMPRESSED_SIZE) return;
+        CPubKey pubkey;
+        pubkey.Set(pubkey_data.begin(), pubkey_data.end());
+        if (!pubkey.IsFullyValid() || !pubkey.IsCompressed()) return;
+        RegisterPouPeerAnnouncement(pubkey.GetID(), pfrom.GetId());
         return;
     }
 

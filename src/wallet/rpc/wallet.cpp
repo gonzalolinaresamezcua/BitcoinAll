@@ -991,6 +991,8 @@ RPCHelpMan gettransaction();
 RPCHelpMan abandontransaction();
 RPCHelpMan rescanblockchain();
 RPCHelpMan abortrescan();
+RPCHelpMan announcepou();
+RPCHelpMan submitpouclaim();
 
 std::span<const CRPCCommand> GetWalletRPCCommands()
 {
@@ -1046,6 +1048,8 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &signrawtransactionwithwallet},
         {"wallet", &simulaterawtransaction},
         {"wallet", &sendall},
+        {"wallet", &announcepou},
+        {"wallet", &submitpouclaim},
         {"wallet", &unloadwallet},
         {"wallet", &upgradewallet},
         {"wallet", &walletcreatefundedpsbt},

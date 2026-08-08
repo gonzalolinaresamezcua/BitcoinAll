@@ -227,6 +227,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   blockencodings.cpp
   blockfilter.cpp
   consensus/btca_uptime.cpp
+  consensus/btca_reward.cpp
   consensus/tx_verify.cpp
   dbwrapper.cpp
   deploymentstatus.cpp
@@ -277,6 +278,8 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   node/timeoffsets.cpp
   node/transaction.cpp
   node/txdownloadman_impl.cpp
+  node/pou_peers.cpp
+  node/pou_block.cpp
   node/txreconciliation.cpp
   node/utxo_snapshot.cpp
   node/warnings.cpp
@@ -342,8 +345,8 @@ if(BUILD_DAEMON)
   add_windows_resources(bitcoind bitcoind-res.rc)
   target_link_libraries(bitcoind
     core_interface
-    bitcoin_node
     $<TARGET_NAME_IF_EXISTS:bitcoin_wallet>
+    bitcoin_node
   )
   install_binary_component(bitcoind HAS_MANPAGE)
 endif()

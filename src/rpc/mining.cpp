@@ -36,6 +36,7 @@
 #include <txmempool.h>
 #include <univalue.h>
 #include <util/signalinterrupt.h>
+#include <util/chaintype.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/bitcoin_time.h>
@@ -139,7 +140,7 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock&& block, uint64_t&
     block_out.reset();
     block.hashMerkleRoot = BlockMerkleRoot(block);
 
-    if (chainman.m_interrupt) {
+    if (bool{chainman.m_interrupt}) {
         return false;
     }
 
@@ -158,10 +159,18 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock&& block, uint64_t&
     return true;
 }
 
+static void RejectCoinbaseMintingOnMainnet(const ChainstateManager& chainman)
+{
+    if (chainman.GetParams().GetChainType() == ChainType::MAIN) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+            "Coinbase minting is disabled on mainnet. BTCA is only emitted via PoU (submitpouclaim / BTCA_TIME).");
+    }
+}
+
 static UniValue generateBlocks(ChainstateManager& chainman, Mining& miner, const CScript& coinbase_output_script, int nGenerate, uint64_t nMaxTries)
 {
     UniValue blockHashes(UniValue::VARR);
-    while (nGenerate > 0 && !chainman.m_interrupt) {
+    while (nGenerate > 0 && !bool{chainman.m_interrupt}) {
         std::unique_ptr<BlockTemplate> block_template(miner.createNewBlock({ .coinbase_output_script = coinbase_output_script }));
         CHECK_NONFATAL(block_template);
 
@@ -245,6 +254,7 @@ static RPCHelpMan generatetodescriptor()
     NodeContext& node = EnsureAnyNodeContext(request.context);
     Mining& miner = EnsureMining(node);
     ChainstateManager& chainman = EnsureChainman(node);
+    RejectCoinbaseMintingOnMainnet(chainman);
 
     return generateBlocks(chainman, miner, coinbase_output_script, num_blocks, max_tries);
 },
@@ -291,6 +301,7 @@ static RPCHelpMan generatetoaddress()
     NodeContext& node = EnsureAnyNodeContext(request.context);
     Mining& miner = EnsureMining(node);
     ChainstateManager& chainman = EnsureChainman(node);
+    RejectCoinbaseMintingOnMainnet(chainman);
 
     CScript coinbase_output_script = GetScriptForDestination(destination);
 
@@ -370,6 +381,7 @@ static RPCHelpMan generateblock()
     CBlock block;
 
     ChainstateManager& chainman = EnsureChainman(node);
+    RejectCoinbaseMintingOnMainnet(chainman);
     {
         LOCK(chainman.GetMutex());
         {
@@ -600,35 +612,6 @@ static RPCHelpMan getprioritisedtransactions()
     };
 }
 
-
-// NOTE: Assumes a conclusive result; if result is inconclusive, it must be handled by caller
-static UniValue BIP22ValidationResult(const BlockValidationState& state)
-{
-    if (state.IsValid())
-        return UniValue::VNULL;
-
-    if (state.IsError())
-        throw JSONRPCError(RPC_VERIFY_ERROR, state.ToString());
-    if (state.IsInvalid())
-    {
-        std::string strRejectReason = state.GetRejectReason();
-        if (strRejectReason.empty())
-            return "rejected";
-        return strRejectReason;
-    }
-    // Should be impossible
-    return "valid?";
-}
-
-// Prefix rule name with ! if not optional, see BIP9
-static std::string gbt_rule_value(const std::string& name, bool gbt_optional_rule)
-{
-    std::string s{name};
-    if (!gbt_optional_rule) {
-        s.insert(s.begin(), '!');
-    }
-    return s;
-}
 
 static RPCHelpMan getblocktemplate()
 {
