@@ -6,9 +6,7 @@ txindex=1
 wallet=primera
 port=9333
 listen=1
-# Bootstrap P2P: nodo seed principal
-seednode=217.154.169.41:9333
-addnode=217.154.169.41:9333
-# Si este PC es seed con IP pública, abre el puerto 9333 en el router y usa externalip=TU_IP
+# Bootstrap P2P: conecta automáticamente a nodos semilla al arrancar
+seednode=84.120.58.166:9333
 minrelaytxfee=0.01
 incrementalrelayfee=0.01
